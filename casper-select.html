@@ -17,20 +17,284 @@
   - along with casper-select.  If not, see <http://www.gnu.org/licenses/>.
   -
 -->
+<link rel="import" href="../polymer/polymer-element.html">
+<link rel="import" href="../iron-fit-behavior/iron-fit-behavior.html">
+<link rel="import" href="../iron-overlay-behavior/iron-overlay-behavior.html">
+<link rel="import" href="../paper-input/paper-input.html">
+<link rel="import" href="../casper-icons/casper-icons.html">
+
+
 <dom-module id="casper-select">
+  <template>
+    <style>
+      :host {
+        overflow: hidden;
+        border: 1px solid black;
+        background-color: white;
+        display: flex;
+        flex-direction: column;
+        max-height: 99vh;
+      }
+
+       #listScroller {
+        overflow: auto;
+        -ms-overflow-style: -ms-autohiding-scrollbar;
+        min-height: 70px;
+        max-height: var(--casper-combo-box-overlay-max-height, 80vh);
+
+        /* Fixes item background from getting on top of scrollbars on Safari */
+        transform: translate3d(0,0,0);
+
+        /* Enable momentum scrolling on iOS (iron-list v1.2+ no longer does it for us) */
+        -webkit-overflow-scrolling: touch;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        flex-grow: 1;
+      }
+
+      .listItem {
+        padding: 0;
+        margin: 0;
+      }
+
+      .itemSelected {
+        background-color: rgba(255, 0, 0, 0.4);
+      }
+
+      :root {
+        --paper-input-container-color: white;
+        --paper-input-container-invalid-color: green;
+        --paper-input-container: {
+          padding: 0;
+          background-color: var(--primary-color);
+        };
+        --paper-input-prefix: {
+          color: white;
+          height: 18px;
+        };
+      }
+    </style>
+    <slot name="search"></slot>
+    <paper-input tabindex="1" id="searchOut" class="paper-input" no-label-float label="pesquisar..">
+        <iron-icon class="iron-icon" icon="casper-icons:search" slot="prefix"></iron-icon>
+        <iron-icon class="iron-icon" icon="casper-icons:clear" slot="suffix" alt="limpar" title="limpar"></iron-icon>
+      </paper-input>
+    <template is="dom-if" if="[[searchCombo]]">
+      <paper-input tabindex="1" id="searchIn" class="paper-input" no-label-float label="pesquisar..">
+        <iron-icon class="iron-icon" icon="casper-icons:search" slot="prefix"></iron-icon>
+        <iron-icon class="iron-icon" icon="casper-icons:clear" slot="suffix" alt="limpar" title="limpar"></iron-icon>
+      </paper-input>
+    </template>
+    <div id="listScroller">
+      <iron-list id="itemsList" scroll-target="listScroller" items="[[filteredItems]]" selected-items="{{selectedItems}}">
+        <template>
+          <div>
+            <div class$="listItem [[_computedItemSelectedClass(selected, index)]]" style$="[[listItemHeightStyle]]">
+              [[item.name]]
+            </div>
+          </div>
+        </template>
+      </iron-list>
+    </div>
+    <slot name="status"></slot>
+  </template>
   <script>
     "use strict";
 
-    class CasperSelect extends Polymer.Element {
+    function generateObjects(n) {
+      let arr = [];
+      while (arr.length < n) {
+          let value = Math.round(Math.random() * n);
+          arr.push({
+              "id": value,
+              "name": "Cloudware Pseudo Random Generated #: " + value
+          });
+      }
+      return arr;
+    }
 
+//    class CasperSelect extends Polymer.mixinBehaviors([], Polymer.Element) {
+    class CasperSelect extends Polymer.mixinBehaviors([Polymer.IronOverlayBehavior, Polymer.IronFitBehavior], Polymer.Element) {
       static get is () {
         return 'casper-select';
       }
 
       static get properties () {
         return {
+          items: {
+            type: Object,
+            value: () => generateObjects(100),
+            observer: '_itemsChanged'
+          },
+          filteredItems: {
+            type: Object
+          },
+          selectedItems: {
+           type: Object
+          },
+          listItemHeight: {
+            type: Number,
+            value: 20
+          },
+          listItemHeightStyle: {
+            type: String,
+            computed: '_listItemHeightDefined(listItemHeight)'
+          },
+          multiSelection: {
+            type: Boolean,
+            value: false,
+            observer: '_multiSelection'
+          },
+          selectionEnabled: {
+            type: Boolean,
+            value: false,
+            observer: '_selectionEnabled'
+          },
+          searchCombo: {
+            type: Boolean,
+            value: true
+          },
+          highlightTemplateTag: {
+            type: String,
+            value: 'span'
+          },
+          highlightTtemplateClass: {
+            type: String,
+            value: 'highlight'
+          }
         }
       }
+
+      ready () {
+        super.ready();
+        window.select = this;
+      }
+
+      _itemsChanged ( newValue, oldValue ) {
+        console.log("_itemsChanged");
+        this.filterItems();
+      }
+
+      _multiSelection ( newValue, oldValue )  {
+        newValue === false ? this.$.itemsList.removeAttribute('multi-selection') : this.$.itemsList.setAttribute('multi-selection', '');
+      }
+
+      _selectionEnabled ( newValue, oldValue ) {
+        if ( newValue === false )  {
+          this.$.itemsList.removeAttribute('selection-enabled');
+          this.selectedItems = null;
+        } else {
+          this.$.itemsList.setAttribute('selection-enabled', '')
+        }
+      }
+
+      _listItemHeightDefined ( listItemHeight ) {;
+          return "height:" + listItemHeight + "px;";
+      }
+
+      _computedItemSelectedClass( selected, index ) {
+        return selected ? 'itemSelected' : '';
+      }
+
+      attachTo (element) {
+        this.positionTarget = element;
+        this.style.width = (this.width || this.positionTarget.offsetWidth) + 'px';
+        if ( this.height ) {
+          this.$.itemsList.style.height = (this.height) + 'px';
+        } else {
+          this.$.itemsList.style.height = (Object.keys(this.items).length * this.listItemHeight) + 'px';
+        }
+
+        super.open();
+
+        setTimeout((e) => {
+          this.searchInput = this.$.searchOut;
+          this.searchInput = this.shadowRoot.querySelector('#searchIn');
+          // Extending both lines to .input or .inputElement
+          // Does nothing.. Only works on the searchOut, either with nothinng, .input, or .inputElement
+          console.log("FOCUS TIME");
+          this.searchInput.focus();
+          this.searchInput.addEventListener('value-changed', (e) => this._debouncedFilterItems(e));
+        }, 1000);
+
+      }
+
+      _debouncedFilterItems (event) {
+        if ( this._filterDebounceTimer === undefined ) {
+          this.filterItems(event.detail.value);
+        } else {
+          clearTimeout(this._filterDebounceTimer);
+        }
+        this._filterDebounceTimer = setTimeout((e) => this.filterItems(), 200);
+      }
+
+      filterItems (query) {
+        if ( typeof this.items === "undefined" || this.items.length === 0 ) {
+          return;
+        }
+        query = query || (this.searchInput ? this.searchInput.value : '');
+        if ( query === this._lastQuery && !filter ) {
+            return;
+        }
+        let filteredItems = this.items;
+        if (query !== '') {
+          let highlightTemplate = this._highlightTemplate();
+          let queryNormalized = (query.normalize('NFD').replace(/[\u0300-\u036f]/g, '')).toLowerCase().split(' ').filter(function(el) { return el !== '' });
+          console.time();
+          for (let item of filteredItems) {
+            let itemValue = item['name'];
+            let itemNormalized = itemValue.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
+            let modifications = [];
+
+            for (let term of queryNormalized) {
+              let indexOf = itemNormalized.indexOf(term);
+              if (indexOf !== -1) {
+                modifications.push([indexOf, indexOf + term.length - 1]);
+              }
+            }
+
+            if (modifications.length > 0)  {
+              modifications.sort(function(a, b) { return a[0]-b[0] || a[1]-b[1] })
+              console.log("modifications before overlap       .>", modifications);
+              modifications = this._mergeOverlappedRanges(modifications);
+              console.log("modifications after overlap        .>", modifications);
+              let itemText = itemValue.substring(0, modifications[0][0]);
+              for ( let m = 0; m < (modifications.length); m++ ) {
+                itemText += highlightTemplate.begin + itemValue.substring(modifications[m][0], modifications[m][1] + 1) + highlightTemplate.end;
+                if ( m === (modifications.length) - 1) {
+                  itemText += itemValue.substring(modifications[m][1] + 1, itemValue.length);
+                } else {
+                  itemText += itemValue.substring(modifications[m][1] + 1, modifications[m+1][0]);
+                }
+              }
+              console.log(itemText);
+            }
+
+          }
+          console.timeEnd();
+        }
+        this.filteredItems = filteredItems;
+      }
+
+      _mergeOverlappedRanges(ranges) {
+        let result = [], last;
+
+        ranges.forEach(function (r) {
+          if (!last || r[0] > last[1])
+            result.push(last = r);
+          else if (r[1] > last[1])
+            last[1] = r[1];
+        });
+
+        return result;
+      }
+
+      _highlightTemplate() {
+        return { begin: '<' + this.highlightTemplateTag + ' class=' + this.highlightTtemplateClass + '">', end: '</' + this.highlightTemplateTag + '>' };
+      }
+
 
     }
 
