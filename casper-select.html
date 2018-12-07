@@ -55,45 +55,57 @@
       }
 
       .listItem {
-        padding: 0;
+        padding: 0 3px;
         margin: 0;
+        @apply --casper-select-listItem;
+      }
+
+      .listItem .highlight {
+        border: 1px solid #ccc;
+        font-weight: bold;
+        border-radius: 4px;
+        @apply --casper-select-listItem-highlight;
       }
 
       .itemSelected {
         background-color: rgba(255, 0, 0, 0.4);
+        @apply --casper-select-listItem-selected;
       }
 
       :root {
         --paper-input-container-color: white;
         --paper-input-container-invalid-color: green;
+
         --paper-input-container: {
           padding: 0;
           background-color: var(--primary-color);
+        };
+        --paper-input-container-input: {
+          color: white;
         };
         --paper-input-prefix: {
           color: white;
           height: 18px;
         };
+        --paper-input-suffix: {
+          color: white;
+          height: 18px;
+          opacity: 0;
+        };
       }
     </style>
     <slot name="search"></slot>
-    <paper-input tabindex="1" id="searchOut" class="paper-input" no-label-float label="pesquisar..">
+    <template is="dom-if" if="[[ searchCombo ]]">
+      <paper-input tabindex="1" id="searchInput" class="paper-input" no-label-float label="pesquisar..">
         <iron-icon class="iron-icon" icon="casper-icons:search" slot="prefix"></iron-icon>
-        <iron-icon class="iron-icon" icon="casper-icons:clear" slot="suffix" alt="limpar" title="limpar"></iron-icon>
-      </paper-input>
-    <template is="dom-if" if="[[searchCombo]]">
-      <paper-input tabindex="1" id="searchIn" class="paper-input" no-label-float label="pesquisar..">
-        <iron-icon class="iron-icon" icon="casper-icons:search" slot="prefix"></iron-icon>
-        <iron-icon class="iron-icon" icon="casper-icons:clear" slot="suffix" alt="limpar" title="limpar"></iron-icon>
+        <iron-icon id="suffixIcon" class="iron-icon" icon="casper-icons:clear" slot="suffix" alt="limpar" title="limpar"></iron-icon>
       </paper-input>
     </template>
     <div id="listScroller">
-      <iron-list id="itemsList" scroll-target="listScroller" items="[[filteredItems]]" selected-items="{{selectedItems}}">
+      <iron-list id="itemsList" scroll-target="listScroller" items="[[ filteredItems ]]" selected-items="{{ ironListSelectedItems }}">
         <template>
-          <div>
-            <div class$="listItem [[_computedItemSelectedClass(selected, index)]]" style$="[[listItemHeightStyle]]">
-              [[item.name]]
-            </div>
+          <div on-tap="_itemClicked">
+            <div class$="listItem [[ _computedItemSelectedClass(selected, index) ]]" style$="[[ listItemHeightStyle ]]" inner-h-t-m-l="[[ _computedItemHtml(item.name) ]]"></div>
           </div>
         </template>
       </iron-list>
@@ -107,9 +119,10 @@
       let arr = [];
       while (arr.length < n) {
           let value = Math.round(Math.random() * n);
+          let name = Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5);
           arr.push({
               "id": value,
-              "name": "Cloudware Pseudo Random Generated #: " + value
+              "name": name + " " + value
           });
       }
       return arr;
@@ -131,9 +144,11 @@
           filteredItems: {
             type: Object
           },
-          selectedItems: {
-           type: Object
+          ironListSelectedItems: {
+            type: Object,
+            observer: '_ironListSelectedItemsChanged'
           },
+          selectedItems: Object,
           listItemHeight: {
             type: Number,
             value: 20
@@ -145,16 +160,22 @@
           multiSelection: {
             type: Boolean,
             value: false,
-            observer: '_multiSelection'
+            observer: '_multiSelectionChanged'
           },
           selectionEnabled: {
             type: Boolean,
             value: false,
-            observer: '_selectionEnabled'
+            observer: '_selectionEnabledChanged'
+          },
+          searchInline: {
+            type: Boolean,
+            value: false,
+            observer: '_searchInlineChanged'
           },
           searchCombo: {
             type: Boolean,
-            value: true
+            value: false,
+            observer: '_searchComboChanged'
           },
           highlightTemplateTag: {
             type: String,
@@ -163,6 +184,10 @@
           highlightTtemplateClass: {
             type: String,
             value: 'highlight'
+          },
+          targetElement: {
+            type: Object,
+            observer: '_targetElementChanged'
           }
         }
       }
@@ -172,35 +197,165 @@
         window.select = this;
       }
 
+      _itemClicked (e) {
+
+        if ( !this.selectedItems || this.selectedItems.length === 0 ) {
+          this.selectedItems = [];
+        }
+
+        let classList = e.target.classList.toString();
+
+        if ( this.multiSelection ) {
+          if ( classList.indexOf("itemSelected") !== -1 ) {
+            for ( let [key, item] of Object.entries(this.selectedItems) ) {
+              if ( item.id == e.model.item.id ) {
+                this.selectedItems.splice(key, 1);
+                return;
+              }
+            }
+          } else {
+            if (typeof this.selectedItems === "undefined") {
+              this.selectedItems = [];
+            }
+            this.selectedItems.push( e.model.item );
+          }
+        } else {
+          if ( classList.indexOf("itemSelected") !== -1 ) {
+            this.selectedItems = [];
+          } else {
+            this.selectedItems = e.model.item;
+          }
+        }
+
+      }
+
+      _clearSearch () {
+        this.searchInput.value = "";
+        this.shadowRoot.querySelector("#suffixIcon").style.opacity = 0;
+        this.shadowRoot.querySelector("#suffixIcon").removeEventListener('click', () => {}, false);
+
+      }
+
+      _ironListSelectedItemsChanged ( newValue, oldValue ) {
+        return;
+        if ( newValue ) {
+          if ( this.filteredItems.length == this.items.length || !this.multiSelection || !this.selectedItems || ( this.multiSelection && this.selectedItems.length === 0 )) {
+            this.selectedItems = this.multiSelection ? newValue.slice() : this._copyObject(newValue);
+          }
+        }
+      }
+
+      _targetElementChanged ( newValue, oldValue ) {
+        if ( typeof newValue === "object" ) {
+          this.searchInput = this.targetElement;
+          this._bindSearchInputListeners();
+        }
+      }
+
+      _bindSearchInputListeners() {
+        if ( this.searchInput ) {
+          this.searchInput.removeEventListener('value-changed', () => {}, false);
+          this.searchInput.addEventListener('value-changed', (e) => this._debouncedFilterItems(e));
+        }
+      }
+
+      _searchComboChanged ( newValue, oldValue ) {
+        this.searchInline = false;
+        if ( this.searchInput ) {
+          this.searchInput.removeEventListener('value-changed', () => {}, false);
+        }
+        if ( newValue ) {
+          Polymer.RenderStatus.afterNextRender(this.shadowRoot.querySelector('#searchInput'), () => {
+            this.searchInput = this.shadowRoot.querySelector('#searchInput');
+            this._bindSearchInputListeners();
+          });
+          Polymer.RenderStatus.afterNextRender(this.shadowRoot.querySelector("#suffixIcon"), () => {
+            this.shadowRoot.querySelector("#suffixIcon").addEventListener('click', (e) => this._clearSearch());
+          });
+        }
+      }
+
+      _searchInlineChanged ( newValue, oldValue ) {
+        this.searchCombo = false;
+        if ( newValue === false ) {
+          if (this.searchInput) {
+            this.searchInput.removeEventListener('value-changed', () => {}, false);
+          }
+        }
+      }
+
       _itemsChanged ( newValue, oldValue ) {
-        console.log("_itemsChanged");
         this.filterItems();
       }
 
-      _multiSelection ( newValue, oldValue )  {
-        newValue === false ? this.$.itemsList.removeAttribute('multi-selection') : this.$.itemsList.setAttribute('multi-selection', '');
+      _computedItemHtml(name) {
+        this._debounceRender();
+        return name;
       }
 
-      _selectionEnabled ( newValue, oldValue ) {
-        if ( newValue === false )  {
-          this.$.itemsList.removeAttribute('selection-enabled');
-          this.selectedItems = null;
+      _multiSelectionChanged ( newValue, oldValue ) {
+        // iron-list: clears selected items when turning multi selection automatically!
+        if ( newValue === true ) {
+          this.$.itemsList.setAttribute('multi-selection', '');
         } else {
+          this.$.itemsList.removeAttribute('multi-selection');
+        }
+      }
+
+      _selectionEnabledChanged ( newValue, oldValue ) {
+        if ( newValue === true )  {
           this.$.itemsList.setAttribute('selection-enabled', '')
+        } else {
+          this.$.itemsList.removeAttribute('selection-enabled');
+          this.ironListSelectedItems = null;
         }
       }
 
       _listItemHeightDefined ( listItemHeight ) {;
-          return "height:" + listItemHeight + "px;";
+        return "height:" + listItemHeight + "px;";
       }
 
-      _computedItemSelectedClass( selected, index ) {
+      _computedItemSelectedClass ( selected, index ) {
+        this._debounceFocus();
         return selected ? 'itemSelected' : '';
       }
 
-      attachTo (element) {
+      _debounceRender() {
+        if ( this.debounceRender !== undefined ) {
+          clearTimeout(this.debounceRender);
+        }
+        this.debounceRender = setTimeout(() => {
+          this._selectItems();
+        }, 15);
+      }
+
+      _debounceFocus() {
+        if ( !this.searchInput ) {
+          return;
+        }
+        if ( this.debounceFocus !== undefined ) {
+          clearTimeout(this.debounceFocus);
+        }
+        this.debounceFocus = setTimeout(() => {
+          this.searchInput.blur();
+          this.searchInput.focus()
+        }, 15);
+      }
+
+      attachTo (element, options) {
+        if (typeof options !== "undefined") {
+          for ( let [key, value] of Object.entries(options) ) {
+            this.key = value;
+          }
+        }
+
         this.positionTarget = element;
+        if ( this.searchInline ) {
+          this.targetElement = this.positionTarget;
+        }
+
         this.style.width = (this.width || this.positionTarget.offsetWidth) + 'px';
+
         if ( this.height ) {
           this.$.itemsList.style.height = (this.height) + 'px';
         } else {
@@ -209,16 +364,12 @@
 
         super.open();
 
-        setTimeout((e) => {
-          this.searchInput = this.$.searchOut;
-          this.searchInput = this.shadowRoot.querySelector('#searchIn');
-          // Extending both lines to .input or .inputElement
-          // Does nothing.. Only works on the searchOut, either with nothinng, .input, or .inputElement
-          console.log("FOCUS TIME");
-          this.searchInput.focus();
-          this.searchInput.addEventListener('value-changed', (e) => this._debouncedFilterItems(e));
-        }, 1000);
-
+        Polymer.RenderStatus.afterNextRender(this.searchInput, () => {
+          if ( this.searchInput ) {
+            this.searchInput.blur();
+            this.searchInput.focus();
+          }
+        });
       }
 
       _debouncedFilterItems (event) {
@@ -227,39 +378,46 @@
         } else {
           clearTimeout(this._filterDebounceTimer);
         }
-        this._filterDebounceTimer = setTimeout((e) => this.filterItems(), 200);
+        this._filterDebounceTimer = setTimeout((e) => this.filterItems(), 0);
       }
 
       filterItems (query) {
         if ( typeof this.items === "undefined" || this.items.length === 0 ) {
           return;
         }
+
         query = query || (this.searchInput ? this.searchInput.value : '');
-        if ( query === this._lastQuery && !filter ) {
+        if ( query === this._lastQuery ) {
             return;
         }
-        let filteredItems = this.items;
-        if (query !== '') {
+        this._lastQuery = query;
+        let filteredItems = [];
+
+        if ( query !== '' ) {
           let highlightTemplate = this._highlightTemplate();
           let queryNormalized = (query.normalize('NFD').replace(/[\u0300-\u036f]/g, '')).toLowerCase().split(' ').filter(function(el) { return el !== '' });
-          console.time();
-          for (let item of filteredItems) {
+
+          if ( this._simpleArrayEqual(queryNormalized, this._lastQueryNormalized ? this._lastQueryNormalized : []) === true ) {
+            return;
+          }
+
+          this._lastQueryNormalized = queryNormalized;
+          this.filteredItems = [];
+
+          for ( let [key, item] of Object.entries(this.items) ) {
             let itemValue = item['name'];
             let itemNormalized = itemValue.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
             let modifications = [];
 
-            for (let term of queryNormalized) {
+            for ( let term of queryNormalized ) {
               let indexOf = itemNormalized.indexOf(term);
-              if (indexOf !== -1) {
+              if ( indexOf !== -1 ) {
                 modifications.push([indexOf, indexOf + term.length - 1]);
               }
             }
 
-            if (modifications.length > 0)  {
-              modifications.sort(function(a, b) { return a[0]-b[0] || a[1]-b[1] })
-              console.log("modifications before overlap       .>", modifications);
+            if ( modifications.length > 0 && modifications.length == queryNormalized.length )  {
               modifications = this._mergeOverlappedRanges(modifications);
-              console.log("modifications after overlap        .>", modifications);
               let itemText = itemValue.substring(0, modifications[0][0]);
               for ( let m = 0; m < (modifications.length); m++ ) {
                 itemText += highlightTemplate.begin + itemValue.substring(modifications[m][0], modifications[m][1] + 1) + highlightTemplate.end;
@@ -269,32 +427,83 @@
                   itemText += itemValue.substring(modifications[m][1] + 1, modifications[m+1][0]);
                 }
               }
-              console.log(itemText);
+              let newItem = this._copyObject(item);
+              newItem['name'] = itemText;
+              filteredItems.push(newItem);
             }
-
           }
-          console.timeEnd();
+
+          this.filteredItems = filteredItems;
+
+        } else {
+          this._lastQueryNormalized = [];
+          this.filteredItems = this.items;
         }
-        this.filteredItems = filteredItems;
+
+        try {
+            this.shadowRoot.querySelector("#suffixIcon").style.opacity = this._lastQueryNormalized.length > 0 ? 1 : 0;
+        } catch (e) {}
       }
 
-      _mergeOverlappedRanges(ranges) {
+      _selectItems () {
+        if ( this.filteredItems && this.filteredItems.length > 0 && this.selectedItems && ( !this.multiSelection || this.selectedItems.length > 0 )) {
+          for ( let [key, item] of Object.entries(this.filteredItems) ) {
+            if ( !this.multiSelection ) {
+              if ( this.selectedItems.id == item.id ) {
+                this.$.itemsList.selectItem( this.$.itemsList.items[key] );
+              }
+            } else {
+              for ( let selItem of this.selectedItems ) {
+                if ( selItem.id == item.id ) {
+                  this.$.itemsList.selectItem( this.$.itemsList.items[key] );
+                }
+              }
+            }
+          }
+        }
+      }
+
+      _highlightTemplate () {
+        return { begin: '<' + this.highlightTemplateTag + ' class="' + this.highlightTtemplateClass + '">', end: '</' + this.highlightTemplateTag + '>' };
+      }
+
+      _simpleArrayEqual ( arr1, arr2 ) {
+        if ( arr1.length != arr2.length ) {
+          return false;
+        }
+        for ( let i = 0, l=arr1.length; i < l; i++ ) {
+          if ( arr1[i] != arr2[i] ) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+      _copyObject ( src ) {
+        let copy = {};
+        for ( let prop in src ) {
+          if ( src.hasOwnProperty(prop) ) {
+            copy[prop] = src[prop];
+          }
+        }
+        return copy;
+      }
+
+      _mergeOverlappedRanges (ranges) {
         let result = [], last;
 
+        ranges.sort(function(a, b) { return a[0]-b[0] || a[1]-b[1] })
+
         ranges.forEach(function (r) {
-          if (!last || r[0] > last[1])
+          if ( !last || (r[0] - 1) > last[1] ) {
             result.push(last = r);
-          else if (r[1] > last[1])
+          } else if ( (r[1] - 1) > last[1] ) {
             last[1] = r[1];
+          }
         });
 
         return result;
       }
-
-      _highlightTemplate() {
-        return { begin: '<' + this.highlightTemplateTag + ' class=' + this.highlightTtemplateClass + '">', end: '</' + this.highlightTemplateTag + '>' };
-      }
-
 
     }
 
