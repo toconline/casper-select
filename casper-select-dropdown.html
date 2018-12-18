@@ -1,0 +1,41 @@
+<!--
+  - Copyright (c) 2014-2016 Cloudware S.A. All rights reserved.
+  -
+  - This file is part of casper-select.
+  -
+  - casper-select is free software: you can redistribute it and/or modify
+  - it under the terms of the GNU Affero General Public License as published by
+  - the Free Software Foundation, either version 3 of the License, or
+  - (at your option) any later version.
+  -
+  - casper-select  is distributed in the hope that it will be useful,
+  - but WITHOUT ANY WARRANTY; without even the implied warranty of
+  - MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  - GNU General Public License for more details.
+  -
+  - You should have received a copy of the GNU Affero General Public License
+  - along with casper-select.  If not, see <http://www.gnu.org/licenses/>.
+  -
+-->
+<link rel="import" href="../polymer/polymer-element.html">
+<link rel="import" href="../iron-fit-behavior/iron-fit-behavior.html">
+<link rel="import" href="../iron-overlay-behavior/iron-overlay-behavior.html">
+
+<dom-module id="casper-select-dropdown">
+  <template>
+    <slot></slot>
+  </template>
+  <script>
+    "use strict";
+
+    class CasperSelectDropdown extends Polymer.mixinBehaviors([Polymer.IronOverlayBehavior, Polymer.IronFitBehavior], Polymer.Element) {
+
+      static get is () {
+        return 'casper-select-dropdown';
+      }
+
+    }
+
+    window.customElements.define(CasperSelectDropdown.is, CasperSelectDropdown);
+  </script>
+</dom-module>
