@@ -173,94 +173,208 @@
 
       static get properties () {
         return {
+          /**
+           * Items supplied
+           * @type {Object}
+           */
           items: {
             type: Object,
             value: () => generateObjects(100),
             observer: '_itemsChanged'
           },
+          /**
+           * Items actually present in the select
+           * @type {Object}
+           */
           filteredItems: {
             type: Object
           },
+          /**
+           * This option doesn't allow you to enter search terms that have no matches
+           * Either shows matched or prevents your input
+           * @type Boolean
+           */
           smartFilter: {
             type: Boolean,
             value: true
           },
+          /**
+           * Activate or disable filtering
+           * @type Boolean
+           */
           filtering: {
             type: Boolean,
             value: true
           },
+          /**
+           * No visible items COMPUTED flag
+           * smartFilter needs to be disabled for this value to become true
+           * @type Boolean
+           */
           noVisibleItems: {
             type: Boolean,
             value: false,
             computed: '_emptyList(filteredItems)'
           },
+          /**
+           * Iron List Internal Selected Items - DO NOT MANIPULATE
+           * @type {Object}
+           */
           ironListSelectedItems: {
             type: Object
           },
+          /**
+           * Casper-Select Internal Selected Items
+           * DO NOT MANIPULATE
+           * @type {Object}
+           */
           selectedItems: {
             type: Object,
             observer: '_selectedItemsChanged'
           },
+          /**
+           * Casper-Select Internal Last Selected Items
+           * DO NOT MANIPULATE
+           * @type {Object}
+           */
+          lastSelectedItems: {
+            type: Object,
+          },
+          /**
+           * Template height per item in px
+           * @type Number
+           */
           listItemHeight: {
             type: Number,
             value: 20
           },
+          /**
+           * Template width per item in px
+           * List Width = This value * Longest Item String
+           * @type Number
+           */
           listItemWidth: {
             type: Number,
             value: 20
           },
+          /**
+           * Template style override to enforce height - COMPUTED
+           * @type String
+           */
           listItemHeightStyle: {
             type: String,
             computed: '_listItemHeightDefined(listItemHeight)'
           },
+          /**
+           * If multi-selection should be enabled
+           * @type Boolean
+           */
           multiSelection: {
             type: Boolean,
             value: false,
             observer: '_multiSelectionChanged'
           },
+          /**
+           * Enable or disable selections
+           * @type Boolean
+           */
           selectionEnabled: {
             type: Boolean,
             value: false,
             observer: '_selectionEnabledChanged'
           },
+          /**
+           * When attached to an existing element, will use that same element for filtering
+           * @type Boolean
+           */
           searchInline: {
             type: Boolean,
             value: false,
             observer: '_searchInlineChanged'
           },
+          /**
+           * When attached to an existing element, will add an extra input to the "select dropdown" for filtering
+           * @type {Object}
+           */
           searchCombo: {
             type: Boolean,
             value: false,
             observer: '_searchComboChanged'
           },
-          closeOnSelect: {
-            type: Boolean,
-            value: true
-          },
+          /**
+           * Dynamically shows its own input, and uses it for filtering and for showing the selected option
+           * Is also computed by the other two types of searches
+           * @type {Object}
+           */
           searchDynamic: {
             type: Boolean,
             value: false,
             computed: '_isDynamicSearch(searchInline, searchCombo)',
             observer: '_searchDynamicChanged'
           },
+          /**
+           * If we are not in "multiSelcetion" mode, will automatically close dropdown on select
+           * @type Boolean
+           */
+          closeOnSelect: {
+            type: Boolean,
+            value: true
+          },
+          /**
+           * HTML Tag that embodies the Highlighted text
+           * Default: span
+           * @type String
+           */
           highlightTemplateTag: {
             type: String,
             value: 'span'
           },
+          /**
+           * CSS class applied to the Highlight Template Tag
+           * @type String
+           */
           highlightTtemplateClass: {
             type: String,
             value: 'highlight'
           },
+          /**
+           * Target element (if using exisitng input elements on the page) to attach the select dropdown to
+           * @type {Object}
+           */
           targetElement: {
             type: Object,
             observer: '_targetElementChanged'
           },
+          /**
+           * Fixed List Height
+           * @type Number
+           */
           listHeight: Number,
+          /**
+           * Fied List Width
+           * @type Number
+           */
           listWidth: Number,
+          /**
+           * Adjust list height when filtering results
+           * @type Boolean
+           */
           resizeOnFilter: {
             type: Boolean,
             value: true
           },
+          /**
+           * Current status of the dropdown
+           * @type Boolean
+           */
+          opened: {
+            type: Boolean,
+            value: false
+          },
+          /**
+           * Resets filtering and search term on attachment
+           * @type Boolean
+           */
           resetOnOpen: {
             type: Boolean,
             value: false
@@ -268,36 +382,51 @@
         }
       }
 
-      ready () {
-        super.ready();
+      connectedCallback () {
+        super.connectedCallback();
+
         this._boundDebounceFilterItems = this._debounceFilterItems.bind(this);
         this._boundSearchInputKeyDownHandler = this._searchInputKeyDownHandler.bind(this);
         this._boundSearchInputKeyPressHandler = this._searchInputKeyPressHandler.bind(this);
         this._boundClearSearch = this._clearSearch.bind(this);
+
+
         this.$.dropdown.addEventListener('opened-changed', e => this._onOpenedChanged(e));
 
         window.select = this;
       }
 
       _onOpenedChanged (e) {
-        if ( !this.multiSelection && this.searchDynamic ) {
-          // Closing
-          if ( e.detail.value === false ) {
-            if ( this.selectedItems ) {
-              this._tempFiltering = this.filtering;
-              this.filtering = false;
-              this.searchInput.value = this.selectedItems.name;
-              this.searchInput.setAttribute('readonly', '');
-            }
-          } else {
-            this.searchInput.value = "";
-            this.searchInput.removeAttribute('readonly');
-            this._resizeItemListHeight();
-            //this._moveSelection('keep');
-            if ( typeof this._tempFiltering !== "undefined" ) {
-              this.filtering = this._tempFiltering;
-            }
+        // Closing
+        if ( e.detail.value === false ) {
+          this.opened = false;
+          if ( !this.multiSelection && ( this.searchDynamic || this.searchInline ) && this.selectedItems ) {
+            this._setValueInInput();
           }
+        } else {
+          if (typeof this._selectedIndex !== "undefined" ) {
+            this.$.itemsList.scrollToIndex( indexScroll );
+          }
+          this.opened = true;
+          if ( !this.multiSelection && ( this.searchDynamic || this.searchInline )) {
+            this._unsetValueInInput();
+          }
+        }
+      }
+
+      _setValueInInput () {
+        this._tempFiltering = this.filtering;
+        this.filtering = false;
+        this.searchInput.value = this.selectedItems.name;
+        this.searchInput.setAttribute('readonly', '');
+      }
+
+      _unsetValueInInput() {
+        this.searchInput.value = "";
+        this.searchInput.removeAttribute('readonly');
+        this._resizeItemListHeight();
+        if ( typeof this._tempFiltering !== "undefined" ) {
+          this.filtering = this._tempFiltering;
         }
       }
 
@@ -306,7 +435,7 @@
       }
 
       _searchDynamicChanged ( newValue, oldValue ) {
-        if ( newValue && newValue != oldValue ) {
+        if ( newValue && !oldValue ) {
           Polymer.RenderStatus.afterNextRender(this.shadowRoot.querySelector('#searchSelf'), () => {
             this._resizeItemListHeight();
             this._setPositionTarget(this.shadowRoot.querySelector('#searchSelf'));
@@ -327,6 +456,10 @@
 
       _itemClicked (e) {
 
+        if ( !this.selectionEnabled ) {
+          return;
+        }
+
         if ( !this.selectedItems || this.selectedItems.length === 0 ) {
           this.selectedItems = [];
         }
@@ -342,7 +475,7 @@
               }
             }
           } else {
-            if (typeof this.selectedItems === "undefined") {
+            if ( typeof this.selectedItems === "undefined" ) {
               this.selectedItems = [];
             }
             this.selectedItems.push( e.model.item );
@@ -372,26 +505,35 @@
       }
 
       _searchInputKeyPressHandler (event) {
+
+        console.log("_searchInputKeyPressHandler", event);
+        console.log("this.smartFilter", this.smartFilter);
+        console.log("this.filtering", this.filtering);
+
+        event.preventDefault();
+        return;
+
         if ( !this.smartFilter || !this.filtering || !this.searchInput ) {
           return;
         }
+
         let key = event.keyCode || event.which;
         let nextLetter = String.fromCharCode(key);
         if (nextLetter.length > 0) {
           let searchTerm = this.searchInput.value + nextLetter;
           if (searchTerm.length > 0) {
-            let lastQuery = this._lastQuery;
+            let _lastQuery = this.searchInput.value;
             this.filterItems(searchTerm);
             if (this.filteredItems.length === 0) {
               event.preventDefault();
-// console this ? put value back
-              this.searchInput.value = this.searchInput.value;
+              this.filterItems(_lastQuery);
             }
           }
         }
       }
 
       _searchInputKeyDownHandler (event) {
+
         let key = event.keyCode || event.which;
         switch (key) {
           case  9: // tab
@@ -400,13 +542,15 @@
             break;
           case 13: // enter
             this._closingKey = 'enter'
-            if ( this.closeOnEnter ) {
+            if ( this.closeOnSelect && !this.multiSelection && this.opened ) {
               this.closeDropdown();
             }
             break;
           case 27: // escape
             this._closingKey = 'esc';
-            this.closeDropdown();
+            if ( this.opened ) {
+              this.closeDropdown();
+            }
             break;
           case 38: // up
             this._moveSelection('up');
@@ -429,14 +573,20 @@
           if ( direction === 'up' && _selectedIndex > 0 ) {
             _selectedIndex -= 1;
             indexScroll = _selectedIndex - 1;
-          } else if ( direction === 'down' && _selectedIndex < this.filteredItems.length - 1) {
+          } else if ( direction === 'down' && _selectedIndex < this.filteredItems.length - 1 ) {
             _selectedIndex += 1;
             indexScroll = _selectedIndex - 1;
           }
+
           this.$.itemsList.selectItem( this.$.itemsList.items[_selectedIndex] );
-          this.$.itemsList.scrollToIndex( indexScroll );
           this._selectedIndex = _selectedIndex;
           this.selectedItems = this.$.itemsList.items[_selectedIndex];
+          this.$.itemsList.scrollToIndex( indexScroll );
+
+          if ( !this.opened ) {
+            this._setValueInInput();
+          }
+
         }
       }
 
@@ -461,11 +611,12 @@
         if ( this.searchInput ) {
           this.searchInput.removeEventListener('value-changed', this._boundDebounceFilterItems);
           this.searchInput.removeEventListener('keydown', this._boundSearchInputKeyDownHandler);
+          this.searchInput.removeEventListener('keypress', this._boundSearchInputKeyPressHandler);
         }
       }
 
       _searchComboChanged ( newValue, oldValue ) {
-        if ( newValue === true && oldValue !== newValue ) {
+        if ( newValue && !oldValue ) {
           this.searchInline = false;
           Polymer.RenderStatus.afterNextRender(this.shadowRoot.querySelector('#searchInput'), () => {
             this.searchInput = this.shadowRoot.querySelector('#searchInput');
@@ -480,7 +631,7 @@
       }
 
       _searchInlineChanged ( newValue, oldValue ) {
-        if ( newValue === true && oldValue !== newValue ) {
+        if ( newValue && !oldValue ) {
           this.searchCombo = false;
           this.searchInput = this.targetElement;
           this._bindSearchInputListeners();
@@ -499,7 +650,7 @@
       }
 
       _multiSelectionChanged ( newValue, oldValue ) {
-        if ( newValue === true ) {
+        if ( newValue ) {
           this.$.itemsList.setAttribute('multi-selection', '');
         } else {
           this.$.itemsList.removeAttribute('multi-selection');
@@ -508,7 +659,7 @@
       }
 
       _selectionEnabledChanged ( newValue, oldValue ) {
-        if ( newValue === true )  {
+        if ( newValue )  {
           this.$.itemsList.setAttribute('selection-enabled', '')
         } else {
           this.$.itemsList.removeAttribute('selection-enabled');
@@ -516,25 +667,27 @@
         }
       }
 
-      _listItemHeightDefined ( listItemHeight ) {;
+      _listItemHeightDefined ( listItemHeight ) {
         return "height:" + listItemHeight + "px;";
       }
 
       _computedItemSelectedClass ( selected, index ) {
-        this._debounceFocus();
+        if ( this.opened ) {
+          this._debounceFocus();
+        }
         return selected ? 'itemSelected' : '';
       }
 
-      _debounceRender() {
+      _debounceRender(defaultTimeout = 15) {
         if ( typeof this._debounceRenderTimeout !== "undefined" ) {
           clearTimeout(this._debounceRenderTimeout);
         }
         this._debounceRenderTimeout = setTimeout(() => {
           this._selectItems();
-        }, 15);
+        }, defaultTimeout);
       }
 
-      _debounceFocus () {
+      _debounceFocus (defaultTimeout = 15) {
         if ( !this.searchInput ) {
           return;
         }
@@ -544,7 +697,7 @@
         this._debounceFocusTimeout = setTimeout(() => {
           this.searchInput.blur();
           this.searchInput.focus()
-        }, 15);
+        }, defaultTimeout);
       }
 
       openDropdown () {
@@ -577,10 +730,7 @@
         this.openDropdown();
 
         Polymer.RenderStatus.afterNextRender(this.searchInput, () => {
-          if ( this.searchInput ) {
-            this.searchInput.blur();
-            this.searchInput.focus();
-          }
+          this._debounceFocus(0);
         });
       }
 
@@ -599,6 +749,8 @@
       _debounceFilterItems (event) {
         if ( typeof this._debounceFilterItemsTimeout === "undefined" ) {
           this.filterItems(event.detail.value);
+          this._debounceFilterItemsTimeout = setTimeout(() => {}, 0);
+          return;
         } else {
           clearTimeout(this._debounceFilterItemsTimeout);
         }
@@ -675,6 +827,7 @@
         try {
             this.shadowRoot.querySelector("#suffixIcon").style.opacity = this._lastQueryNormalized.length > 0 ? 1 : 0;
         } catch (e) {}
+
       }
 
       _resizeItemListHeight (useFiltered = false) {
@@ -708,7 +861,7 @@
         return { begin: '<' + this.highlightTemplateTag + ' class="' + this.highlightTtemplateClass + '">', end: '</' + this.highlightTemplateTag + '>' };
       }
 
-      _simpleArrayEqual ( arr1, arr2 ) {
+      _simpleArrayEqual (arr1, arr2) {
         if ( arr1.length != arr2.length ) {
           return false;
         }
@@ -720,7 +873,7 @@
         return true;
       }
 
-      _copyObject ( src ) {
+      _copyObject (src) {
         let copy = {};
         for ( let prop in src ) {
           if ( src.hasOwnProperty(prop) ) {
