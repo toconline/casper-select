@@ -97,6 +97,19 @@
         cursor: pointer;
       }
 
+      #dynamicInputList {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+
+      #dynamicInputList li {
+
+      }
+
       :root {
         --paper-input-container-color: white;
         --paper-input-container-invalid-color: green;
@@ -121,10 +134,14 @@
     </style>
 
     <template is="dom-if" if="[[ searchDynamic ]]">
-      <paper-input id="searchSelf" class="paper-input" no-label-float label="Escolha uma opção de exemplo" on-tap="selfInputClicked">
-      </paper-input>
+      <ul id="dynamicInputList">
+        <li>A</li>
+        <li>B</li>
+        <li>C</li>
+        <li class="input"><paper-input id="searchSelf" class="paper-input" no-label-float label="Escolha uma opção de exemplo" on-tap="selfInputClicked"></paper-input></li>
+      </ul>
     </template>
-    <casper-select-dropdown id="dropdown" no-overlap dynamic-align horizontal-align="auto" vertical-align="auto">
+    <casper-select-dropdown id="dropdown" no-overlap dynamic-align horizontal-align="auto" vertical-align="auto" no-cancel-on-esc-key>
       <slot name="search"></slot>
       <template is="dom-if" if="[[ searchCombo ]]">
         <paper-input tabindex="1" id="searchInput" class="paper-input" no-label-float label="pesquisar..">
@@ -136,7 +153,7 @@
         <iron-list id="itemsList" scroll-target="listScroller" items="[[ filteredItems ]]" selected-items="{{ ironListSelectedItems }}">
           <template>
             <div on-tap="_itemClicked">
-              <div class$="listItem [[ _computedItemSelectedClass(selected, index) ]]" style$="[[ listItemHeightStyle ]]" inner-h-t-m-l="[[ _computedItemHtml(item.name) ]]"></div>
+              <div class$="listItem [[ _computedItemSelectedClass(selected, index) ]]" style$="[[ listItemHeightStyle ]]" inner-h-t-m-l="[[ _computedItemHtml(item._csHTML) ]]"></div>
             </div>
           </template>
         </iron-list>
@@ -183,6 +200,22 @@
             observer: '_itemsChanged'
           },
           /**
+           * Item Column -> default: "name"
+           * @type {String}
+           */
+          itemColumn: {
+            type: String,
+            value: 'name'
+          },
+          /**
+           * Key Column -> default: "id"
+           * @type {String}
+           */
+          keyColumn: {
+            type: String,
+            value: 'id'
+          },
+          /**
            * Items actually present in the select
            * @type {Object}
            */
@@ -192,7 +225,7 @@
           /**
            * This option doesn't allow you to enter search terms that have no matches
            * Either shows matched or prevents your input
-           * @type Boolean
+           * @type {Boolean}
            */
           smartFilter: {
             type: Boolean,
@@ -200,7 +233,7 @@
           },
           /**
            * Activate or disable filtering
-           * @type Boolean
+           * @type {Boolean}
            */
           filtering: {
             type: Boolean,
@@ -209,7 +242,7 @@
           /**
            * No visible items COMPUTED flag
            * smartFilter needs to be disabled for this value to become true
-           * @type Boolean
+           * @type {Boolean}
            */
           noVisibleItems: {
             type: Boolean,
@@ -242,7 +275,7 @@
           },
           /**
            * Template height per item in px
-           * @type Number
+           * @type {Number}
            */
           listItemHeight: {
             type: Number,
@@ -251,7 +284,7 @@
           /**
            * Template width per item in px
            * List Width = This value * Longest Item String
-           * @type Number
+           * @type {Number}
            */
           listItemWidth: {
             type: Number,
@@ -259,7 +292,7 @@
           },
           /**
            * Template style override to enforce height - COMPUTED
-           * @type String
+           * @type {String}
            */
           listItemHeightStyle: {
             type: String,
@@ -267,7 +300,7 @@
           },
           /**
            * If multi-selection should be enabled
-           * @type Boolean
+           * @type {Boolean}
            */
           multiSelection: {
             type: Boolean,
@@ -276,7 +309,7 @@
           },
           /**
            * Enable or disable selections
-           * @type Boolean
+           * @type {Boolean}
            */
           selectionEnabled: {
             type: Boolean,
@@ -285,7 +318,7 @@
           },
           /**
            * When attached to an existing element, will use that same element for filtering
-           * @type Boolean
+           * @type {Boolean}
            */
           searchInline: {
             type: Boolean,
@@ -314,7 +347,7 @@
           },
           /**
            * If we are not in "multiSelcetion" mode, will automatically close dropdown on select
-           * @type Boolean
+           * @type {Boolean}
            */
           closeOnSelect: {
             type: Boolean,
@@ -323,7 +356,7 @@
           /**
            * HTML Tag that embodies the Highlighted text
            * Default: span
-           * @type String
+           * @type {String}
            */
           highlightTemplateTag: {
             type: String,
@@ -331,7 +364,7 @@
           },
           /**
            * CSS class applied to the Highlight Template Tag
-           * @type String
+           * @type {String}
            */
           highlightTtemplateClass: {
             type: String,
@@ -347,17 +380,17 @@
           },
           /**
            * Fixed List Height
-           * @type Number
+           * @type {Number}
            */
           listHeight: Number,
           /**
            * Fied List Width
-           * @type Number
+           * @type {Number}
            */
           listWidth: Number,
           /**
            * Adjust list height when filtering results
-           * @type Boolean
+           * @type {Boolean}
            */
           resizeOnFilter: {
             type: Boolean,
@@ -365,15 +398,15 @@
           },
           /**
            * Current status of the dropdown
-           * @type Boolean
+           * @type {Boolean}
            */
           opened: {
             type: Boolean,
             value: false
           },
           /**
-           * Resets filtering and search term on attachment
-           * @type Boolean
+           * Resets filtering and search term on a new attachment
+           * @type {Boolean}
            */
           resetOnOpen: {
             type: Boolean,
@@ -400,24 +433,35 @@
         // Closing
         if ( e.detail.value === false ) {
           this.opened = false;
-          if ( !this.multiSelection && ( this.searchDynamic || this.searchInline ) && this.selectedItems ) {
-            this._setValueInInput();
+          if ( !this.multiSelection && ( this.searchDynamic || this.searchInline ) ) {
+            // On close,
+            this.lastSelectedItems = this.selectedItems;
+            if ( this.selectedItems !== undefined ) {
+              this._setValueInInput();
+            } else {
+              this._clearValueInput();
+            }
           }
+        // Opening
         } else {
-          if (typeof this._selectedIndex !== "undefined" ) {
-            this.$.itemsList.scrollToIndex( indexScroll );
+          if ( typeof this._selectedIndex !== "undefined" ) {
+            this.$.itemsList.scrollToIndex( this._selectedIndex );
           }
           this.opened = true;
-          if ( !this.multiSelection && ( this.searchDynamic || this.searchInline )) {
+          if ( !this.multiSelection && ( this.searchDynamic || this.searchInline ) ) {
             this._unsetValueInInput();
           }
         }
       }
 
+      _clearValueInput () {
+        this.searchInput.value = "";
+      }
+
       _setValueInInput () {
         this._tempFiltering = this.filtering;
         this.filtering = false;
-        this.searchInput.value = this.selectedItems.name;
+        this.searchInput.value = this.selectedItems[this.itemColumn];
         this.searchInput.setAttribute('readonly', '');
       }
 
@@ -469,7 +513,7 @@
         if ( this.multiSelection ) {
           if ( classList.indexOf("itemSelected") !== -1 ) {
             for ( let [key, item] of Object.entries(this.selectedItems) ) {
-              if ( item.id == e.model.item.id ) {
+              if ( item[this.keyColumn] == e.model.item[this.keyColumn] ) {
                 this.selectedItems.splice(key, 1);
                 return;
               }
@@ -506,13 +550,6 @@
 
       _searchInputKeyPressHandler (event) {
 
-        console.log("_searchInputKeyPressHandler", event);
-        console.log("this.smartFilter", this.smartFilter);
-        console.log("this.filtering", this.filtering);
-
-        event.preventDefault();
-        return;
-
         if ( !this.smartFilter || !this.filtering || !this.searchInput ) {
           return;
         }
@@ -533,23 +570,41 @@
       }
 
       _searchInputKeyDownHandler (event) {
-
         let key = event.keyCode || event.which;
         switch (key) {
           case  9: // tab
-            this._closingKey = event.shiftKey === true ? 'shift+tab' : 'tab';
-            this.closeDropdown();
-            break;
           case 13: // enter
-            this._closingKey = 'enter'
-            if ( this.closeOnSelect && !this.multiSelection && this.opened ) {
-              this.closeDropdown();
+            this._closingKey = key == 13 ? 'enter' : (event.shiftKey === true ? 'shift+tab' : 'tab');
+            if ( !this.multiSelection ) {
+              this.lastSelectedItems = this.selectedItems;
+              if ( this.opened ) {
+                if ( this.closeOnSelect ) {
+                  this.closeDropdown();
+                }
+              } else {
+                if ( this.searchInput ) {
+                  this.searchInput.blur();
+                }
+              }
             }
             break;
           case 27: // escape
             this._closingKey = 'esc';
+            this.selectedItems = this.lastSelectedItems;
+            this.ironListSelectedItems = this.selectedItems;
+            if ( !this.multiSelection ) {
+              if ( this.selectedItems === undefined ) {
+                this._clearValueInput();
+              } else {
+                this._setValueInInput();
+              }
+            }
             if ( this.opened ) {
               this.closeDropdown();
+            } else {
+              if ( this.searchInput ) {
+                this.searchInput.blur();
+              }
             }
             break;
           case 38: // up
@@ -641,12 +696,19 @@
       }
 
       _itemsChanged ( newValue, oldValue ) {
+        for ( let [key, item] of Object.entries(this.items) ) {
+          item._csHTML = item[this.itemColumn];
+          this.items[key] = item;
+        }
+        if ( !this.filtering ) {
+          this.filteredItems = this.items;
+        }
         this.filterItems();
       }
 
-      _computedItemHtml(name) {
+      _computedItemHtml(html) {
         this._debounceRender();
-        return name;
+        return html;
       }
 
       _multiSelectionChanged ( newValue, oldValue ) {
@@ -741,8 +803,8 @@
         if ( typeof this.listWidth != "undefined" && this.listWidth > 0 ) {
           this.$.dropdown.style.width = this.listWidth + 'px';
         } else {
-          let longestItem = this.items.reduce(function (a, b) { return a.name.length > b.name.length ? a : b; });
-          this.$.dropdown.style.width = Math.max(this.targetElement.offsetWidth, longestItem.name.length * this.listItemWidth) + 'px';
+          let longestItem = this.items.reduce( (a, b) => a[this.itemColumn].length > b[this.itemColumn].length ? a : b );
+          this.$.dropdown.style.width = Math.max(this.targetElement.offsetWidth, longestItem[this.itemColumn].length * this.listItemWidth) + 'px';
         }
       }
 
@@ -782,7 +844,7 @@
           this.filteredItems = [];
 
           for ( let [key, item] of Object.entries(this.items) ) {
-            let itemValue = item['name'];
+            let itemValue = item[this.itemColumn];
             let itemNormalized = itemValue.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
             let modifications = [];
 
@@ -805,14 +867,18 @@
                 }
               }
               let newItem = this._copyObject(item);
-              newItem['name'] = itemText;
+              newItem["_csHTML"] = itemText;
               filteredItems.push(newItem);
             }
           }
 
-          if ( filteredItems.length === 0 ) {
-            this.searchInput.value = _lastQuery;
-          }
+          // @REVIEW:
+          // This doesn't seem necessary nor important at this stage..
+          // Dont remember why I added it, so I just commented it for now
+
+          //if ( filteredItems.length === 0 ) {
+            //this.searchInput.value = _lastQuery;
+          //}
 
           this.filteredItems = filteredItems;
         } else {
@@ -843,12 +909,12 @@
         if ( this.filteredItems && this.filteredItems.length > 0 && this.selectedItems && ( !this.multiSelection || this.selectedItems.length > 0 )) {
           for ( let [key, item] of Object.entries(this.filteredItems) ) {
             if ( !this.multiSelection ) {
-              if ( this.selectedItems.id == item.id ) {
+              if ( this.selectedItems[this.keyColumn] == item[this.keyColumn] ) {
                 this.$.itemsList.selectItem( this.$.itemsList.items[key] );
               }
             } else {
               for ( let selItem of this.selectedItems ) {
-                if ( selItem.id == item.id ) {
+                if ( selItem[this.keyColumn] == item[this.keyColumn] ) {
                   this.$.itemsList.selectItem( this.$.itemsList.items[key] );
                 }
               }
