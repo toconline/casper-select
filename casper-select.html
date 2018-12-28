@@ -90,7 +90,8 @@
       }
 
       #searchSelf {
-        width: 200px;
+        /*width: 200px;*/
+        width: auto;
       }
 
       #suffixIcon {
@@ -104,10 +105,49 @@
         display: flex;
         flex-direction: row;
         flex-wrap: wrap;
+        background-color: white;
+        width: 200px;
+        border:1px solid #e4e4e4;
       }
 
-      #dynamicInputList li {
+      #dynamicInputList li:not(.input) {
+/*        border: 1px solid #000;
+        color: black;
+        padding: 5px;
+        min-width: 60px;
+        height: 20px;
+        margin-right: 5px;
+*/
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 3px 5px 3px 3px;
+        margin: 3px 0 3px 5px;
+        line-height: 13px;
+        color: #6f6262;
+        cursor: default;
+        border: 1px solid #aaaaaa;
+        border-radius: 3px;
+        box-shadow: 0 0 2px white inset, 0 1px 0 rgba(0, 0, 0, 0.05);
+        user-select: none;
+        outline: none;
+        background-color: #e4e4e4;
+        background-image: linear-gradient(to top, #f4f4f4 20%, #f0f0f0 50%, #e8e8e8 52%, #eeeeee 100%);
+      }
 
+      #dynamicInputList li:not(.input) button {
+        margin: 0 5px 0 0;
+        padding: 0;
+        background: none;
+        border: none;
+        user-select: none;
+        outline: none;
+        cursor: pointer;
+        color: #6f6262;
+      }
+
+      #dynamicInputList li:last-child {
+        margin: 0;
       }
 
       :root {
@@ -131,13 +171,46 @@
           opacity: 0;
         };
       }
+
+      :root {
+        #dynamicInputList {
+        --paper-input-container-color: white;
+        --paper-input-container-invalid-color: green;
+
+        --paper-input-container: {
+          padding: 0;
+          background-color: red !important;
+        };
+        --paper-input-container-input: {
+          color: white;
+        };
+        --paper-input-prefix: {
+          color: white;
+          height: 18px;
+        };
+        --paper-input-suffix: {
+          color: white;
+          height: 18px;
+          opacity: 0;
+        };
+        }
+      }
     </style>
 
     <template is="dom-if" if="[[ searchDynamic ]]">
       <ul id="dynamicInputList">
-        <li>A</li>
-        <li>B</li>
-        <li>C</li>
+        <li>
+          <button>&#x2716;</button>
+          <span>A</span>
+        </li>
+        <li>
+          <button>&#x2716;</button>
+          <span>B</span>
+        </li>
+        <li>
+          <button>&#x2716;</button>
+          <span>C</span>
+        </li>
         <li class="input"><paper-input id="searchSelf" class="paper-input" no-label-float label="Escolha uma opção de exemplo" on-tap="selfInputClicked"></paper-input></li>
       </ul>
     </template>
