@@ -63,8 +63,12 @@
       }
 
       .listItem {
-        padding: 0 3px;
         margin: 0;
+        padding: 0 4px;
+        overflow: hidden;
+        line-height: 20px;
+        white-space: nowrap;
+        text-overflow: ellipsis;
         @apply --casper-select-listItem;
       }
 
@@ -267,7 +271,6 @@
            */
           items: {
             type: Object,
-            value: () => generateObjects(700),
             observer: '_itemsChanged'
           },
           /**
@@ -401,7 +404,7 @@
            */
           selectionEnabled: {
             type: Boolean,
-            value: false,
+            value: true,
             observer: '_selectionEnabledChanged'
           },
           /**
@@ -503,8 +506,8 @@
         }
       }
 
-      connectedCallback () {
-        super.connectedCallback();
+      ready () {
+        super.ready();
 
         this._boundDebounceFilterItems = this._debounceFilterItems.bind(this);
         this._boundSearchInputKeyDownHandler = this._searchInputKeyDownHandler.bind(this);
@@ -518,6 +521,7 @@
       }
 
       _onOpenedChanged (e) {
+        console.log(e);
 
         // Closing
         if ( e.detail.value === false ) {
@@ -540,7 +544,7 @@
           }
           this.opened = true;
           if ( !this.multiSelection && ( this.searchDynamic || this.searchInline ) ) {
-            //this._unsetValueInInput();
+            this._unsetValueInInput();
           }
         }
       }
@@ -550,8 +554,11 @@
       }
 
       _setValueInInput () {
+        console.trace();
+        console.log(this._tempFiltering, this.filtering);
         this._tempFiltering = this.filtering;
         this.filtering = false;
+        console.log(this._tempFiltering, this.filtering);
         this.searchInput.value = this.selectedItems[this.itemColumn];
         this.searchInput.setAttribute('readonly', '');
       }
@@ -840,7 +847,14 @@
         if ( !this.filtering ) {
           this.filteredItems = this.items;
         }
-        this.filterItems();
+
+        if ( newValue.length > 0 ) {
+          this.filterItems();
+          Polymer.RenderStatus.afterNextRender(this.searchInput, () => {
+            this._resizeItemListHeight();
+            this._resizeItemListWidth();
+          });
+        }
       }
 
       _computedItemHtml(html) {
@@ -878,7 +892,7 @@
         if ( this.opened ) {
           this._debounceFocus();
         }
-        console.log("selectedClass", selected, "index", index);
+
         return selected ? 'itemSelected' : '';
       }
 
@@ -942,12 +956,7 @@
         this.$.dropdown.positionTarget = element;
         this.targetElement = element;
 
-        if ( typeof this.listWidth != "undefined" && this.listWidth > 0 ) {
-          this.$.dropdown.style.width = this.listWidth + 'px';
-        } else {
-          let longestItem = this.items.reduce( (a, b) => a[this.itemColumn].length > b[this.itemColumn].length ? a : b );
-          this.$.dropdown.style.width = Math.max(this.targetElement.offsetWidth, longestItem[this.itemColumn].length * this.listItemWidth) + 'px';
-        }
+        this._resizeItemListWidth();
       }
 
       _debounceFilterItems (event) {
@@ -1049,6 +1058,15 @@
           this.$.itemsList.style.height = (this.listHeight) + 'px';
         } else {
           this.$.itemsList.style.height = (Object.keys(items).length * this.listItemHeight) + 'px';
+        }
+      }
+
+      _resizeItemListWidth () {
+        if ( typeof this.listWidth != "undefined" && this.listWidth > 0 ) {
+          this.$.dropdown.style.width = this.listWidth + 'px';
+        } else if ( this.items.length > 0 ) {
+          let longestItem = this.items.reduce( (a, b) => a[this.itemColumn].length > b[this.itemColumn].length ? a : b );
+          this.$.dropdown.style.width = Math.max(this.targetElement.offsetWidth, longestItem[this.itemColumn].length * this.listItemWidth) + 'px';
         }
       }
 
