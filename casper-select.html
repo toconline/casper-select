@@ -115,13 +115,6 @@
       }
 
       #dynamicListWithInput li:not(.input) {
-/*        border: 1px solid #000;
-        color: black;
-        padding: 5px;
-        min-width: 60px;
-        height: 20px;
-        margin-right: 5px;
-*/
         display: flex;
         align-items: center;
         justify-content: center;
@@ -156,6 +149,10 @@
 
       #dynamicListWithInput.multiSelectionWithTags {
         border:1px solid #e4e4e4;
+      }
+
+      #dynamicListWithInput:not(.multiSelectionWithTags) li:last-child {
+        flex-grow: 1;
       }
 
       :root {
@@ -243,19 +240,6 @@
   </template>
   <script>
     "use strict";
-
-    function generateObjects(n) {
-      let arr = [];
-      while (arr.length < n) {
-        let value = Math.round(Math.random() * (n * 1000));
-        let name = Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5);
-        arr.push({
-          "id": value,
-          "name": value + ": " + name
-        });
-      }
-      return arr;
-    }
 
     class CasperSelect extends Polymer.Element {
 
@@ -347,6 +331,7 @@
            */
           lastSelectedItems: {
             type: Object,
+            value: () => []
           },
           /**
            * Template height per item in px
@@ -521,13 +506,10 @@
       }
 
       _onOpenedChanged (e) {
-        console.log(e);
-
         // Closing
         if ( e.detail.value === false ) {
           this.opened = false;
           if ( !this.multiSelection && ( this.searchDynamic || this.searchInline ) ) {
-            // On close,
             this.lastSelectedItems = this.selectedItems;
             if ( this.selectedItems !== undefined ) {
               this._setValueInInput();
@@ -554,11 +536,8 @@
       }
 
       _setValueInInput () {
-        console.trace();
-        console.log(this._tempFiltering, this.filtering);
         this._tempFiltering = this.filtering;
         this.filtering = false;
-        console.log(this._tempFiltering, this.filtering);
         this.searchInput.value = this.selectedItems[this.itemColumn];
         this.searchInput.setAttribute('readonly', '');
       }
@@ -598,7 +577,7 @@
                 list.removeChild(el);
               });
             }
-            if ( newValue.length > 0 ) {
+            if ( newValue !== undefined && newValue.length > 0 ) {
               newValue.forEach( el => {
                 let li = document.createElement('li');
                 let liButton = document.createElement('button');
@@ -699,9 +678,12 @@
         }
 
         let key = event.keyCode || event.which;
+        if (key == 13)
+          return;
+
         let nextLetter = String.fromCharCode(key);
         if (nextLetter.length > 0) {
-          let searchTerm = this.searchInput.value + nextLetter;
+          let searchTerm = this.searchInput.value + nextLetter.trim();
           if (searchTerm.length > 0) {
             let _lastQuery = this.searchInput.value;
             this.filterItems(searchTerm);
@@ -734,9 +716,10 @@
             break;
           case 27: // escape
             this._closingKey = 'esc';
-            this.selectedItems = this.lastSelectedItems;
-            this.ironListSelectedItems = this.selectedItems;
             if ( !this.multiSelection ) {
+              this.selectedItems = this.lastSelectedItems;
+              this.ironListSelectedItems = [];
+              this.ironListSelectedItems = JSON.parse(JSON.stringify( this.selectedItems ));
               if ( this.selectedItems === undefined ) {
                 this._clearValueInput();
               } else {
@@ -1067,6 +1050,8 @@
         } else if ( this.items.length > 0 ) {
           let longestItem = this.items.reduce( (a, b) => a[this.itemColumn].length > b[this.itemColumn].length ? a : b );
           this.$.dropdown.style.width = Math.max(this.targetElement.offsetWidth, longestItem[this.itemColumn].length * this.listItemWidth) + 'px';
+        } else if ( this.targetElement ) {
+          this.$.dropdown.style.width = this.targetElement.offsetWidth + 'px';
         }
       }
 
@@ -1127,6 +1112,10 @@
         });
 
         return result;
+      }
+
+      value() {
+        return this.selectedItems;
       }
 
     }
