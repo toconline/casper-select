@@ -256,6 +256,14 @@
             observer: '_itemsChanged'
           },
           /**
+           * Disabled Items supplied
+           * @type {Object}
+           */
+          disabledItems: {
+            type: Object,
+            observer: '_disabledItemsChanged'
+          },
+          /**
            * Item Column -> default: "name"
            * @type {String}
            */
@@ -391,16 +399,24 @@
           /**
            * Use multi-selection tags on the input
            * Requires: "searchDynamic" to be true
-           * @type {Object}
+           * @type {Boolean}
            */
           multiSelectionTags: {
             type: Boolean,
             value: false
           },
+          /**
+           * Computed property to hold the multi-selection tags class to add to the DOM
+           * @type {String}
+           */
           multiSelectionTagsClass: {
             type: String,
             computed: '_multiSelectionTagsDefined(multiSelectionTags)'
           },
+          /**
+           * DOM Element provided to override the placeholder for the multi-selection tags
+           * @type {Object}
+           */
           multiSelectionTagsElementParent: {
             type: Object
           },
@@ -867,6 +883,12 @@
             this._resizeItemListHeight();
             this._resizeItemListWidth();
           });
+        }
+      }
+
+      _disabledItemsChanged ( newValue, oldValue ) {
+        for ( let [key, item] of Object.entries(this.items) ) {
+
         }
       }
 
