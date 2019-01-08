@@ -208,7 +208,7 @@
 
     <template is="dom-if" if="[[ searchDynamic ]]">
       <ul id="dynamicListWithInput" class$="[[ multiSelectionTagsClass ]]">
-        <li class="input"><paper-input id="searchSelf" class$="paper-input [[ multiSelectionTagsClass ]]" no-label-float label="Escolha uma opção" on-tap="selfInputClicked"></paper-input></li>
+        <li class="input"><paper-input id="searchSelf" class$="paper-input [[ multiSelectionTagsClass ]]" no-label-float="[[ noLabelFloat ]]" label="[[ label ]]" on-tap="selfInputClicked"></paper-input></li>
       </ul>
     </template>
     <casper-select-dropdown id="dropdown" no-overlap dynamic-align horizontal-align="auto" vertical-align="auto" no-cancel-on-esc-key>
@@ -270,6 +270,29 @@
           keyColumn: {
             type: String,
             value: 'id'
+          },
+          /**
+           * Initial ID to be compared to "keyColumn" for initial selection
+           * @type {Object}
+           */
+          initialId: {
+            type: Object
+          },
+          /**
+           * Dynamic Search Input - Internal Paper Input Property
+           * @type {Boolean}
+           */
+          noLabelFloat: {
+            type: Boolean,
+            value: false
+          },
+          /**
+           * Dynamic Search Innput - Internal Paper Input Property
+           * @type {String}
+           */
+          label: {
+            type: String,
+            value: 'Escolha uma opção'
           },
           /**
            * Items actually present in the select
@@ -723,7 +746,7 @@
             if ( !this.multiSelection ) {
               this.selectedItems = this.lastSelectedItems;
               this.ironListSelectedItems = [];
-              this.ironListSelectedItems = JSON.parse(JSON.stringify( this.selectedItems ));
+              this.ironListSelectedItems = this.selectedItems;
               if ( this.selectedItems === undefined ) {
                 this._clearValueInput();
               } else {
@@ -830,6 +853,9 @@
         for ( let [key, item] of Object.entries(this.items) ) {
           item._csHTML = item[this.itemColumn];
           this.items[key] = item;
+          if ( this.initialId && this.initialId == item[this.keyColumn] ) {
+
+          }
         }
         if ( !this.filtering ) {
           this.filteredItems = this.items;
@@ -868,6 +894,7 @@
       }
 
       _multiSelectionTagsDefined ( multiSelectionTags ) {
+        this.noLabelFloat = multiSelectionTags;
         return multiSelectionTags ? 'multiSelectionWithTags' : '';
       }
 
@@ -942,7 +969,6 @@
       _setPositionTarget (element) {
         this.$.dropdown.positionTarget = element;
         this.targetElement = element;
-
         this._resizeItemListWidth();
       }
 
@@ -1045,6 +1071,17 @@
           this.$.itemsList.style.height = (this.listHeight) + 'px';
         } else {
           this.$.itemsList.style.height = (Object.keys(items).length * this.listItemHeight) + 'px';
+        }
+        if ( this.searchInput && this.initialId && !this.multiSelection && this.filteredItems && this.filteredItems.length > 0 ) {
+          for ( let [key, item] of Object.entries(this.filteredItems) ) {
+            if ( this.initialId == item[this.keyColumn] ) {
+              this.$.itemsList.selectItem( this.$.itemsList.items[key] );
+              this.selectedItems = this.lastSelectedItems = JSON.parse(JSON.stringify( this.ironListSelectedItems ));
+              this.initialId = undefined;
+              this._setValueInInput();
+              break;
+            }
+          }
         }
       }
 
