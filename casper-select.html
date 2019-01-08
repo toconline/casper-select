@@ -98,7 +98,7 @@
         cursor: pointer;
       }
 
-      #dynamicInputList {
+      #dynamicListWithInput {
         list-style-type: none;
         padding: 0;
         margin: 0;
@@ -107,10 +107,10 @@
         flex-wrap: wrap;
         background-color: white;
         width: 200px;
-        border:1px solid #e4e4e4;
+        border: none;
       }
 
-      #dynamicInputList li:not(.input) {
+      #dynamicListWithInput li:not(.input) {
 /*        border: 1px solid #000;
         color: black;
         padding: 5px;
@@ -135,7 +135,7 @@
         background-image: linear-gradient(to top, #f4f4f4 20%, #f0f0f0 50%, #e8e8e8 52%, #eeeeee 100%);
       }
 
-      #dynamicInputList li:not(.input) button {
+      #dynamicListWithInput li:not(.input) button {
         margin: 0 5px 0 0;
         padding: 0;
         background: none;
@@ -146,8 +146,12 @@
         color: #6f6262;
       }
 
-      #dynamicInputList li:last-child {
+      #dynamicListWithInput li:last-child {
         margin: 0;
+      }
+
+      #dynamicListWithInput.multiSelectionWithTags {
+        border:1px solid #e4e4e4;
       }
 
       :root {
@@ -172,17 +176,15 @@
         };
       }
 
-      :root {
-        #dynamicInputList {
-        --paper-input-container-color: white;
+      #searchSelf {
+        --paper-input-container-color: #6f6262;
         --paper-input-container-invalid-color: green;
-
         --paper-input-container: {
           padding: 0;
-          background-color: red !important;
+          background-color: white;
         };
         --paper-input-container-input: {
-          color: white;
+          color: black;
         };
         --paper-input-prefix: {
           color: white;
@@ -193,25 +195,21 @@
           height: 18px;
           opacity: 0;
         };
-        }
+      }
+
+      #searchSelf.multiSelectionWithTags {
+        --paper-input-container-underline: {
+          display: none;
+        };
+        --paper-input-container-underline-focus: {
+          display: none;
+        };
       }
     </style>
 
     <template is="dom-if" if="[[ searchDynamic ]]">
-      <ul id="dynamicInputList">
-        <li>
-          <button>&#x2716;</button>
-          <span>A</span>
-        </li>
-        <li>
-          <button>&#x2716;</button>
-          <span>B</span>
-        </li>
-        <li>
-          <button>&#x2716;</button>
-          <span>C</span>
-        </li>
-        <li class="input"><paper-input id="searchSelf" class="paper-input" no-label-float label="Escolha uma opção de exemplo" on-tap="selfInputClicked"></paper-input></li>
+      <ul id="dynamicListWithInput" class$="[[ multiSelectionTagsClass ]]">
+        <li class="input"><paper-input id="searchSelf" class$="paper-input [[ multiSelectionTagsClass ]]" no-label-float label="Escolha uma opção de exemplo" on-tap="selfInputClicked"></paper-input></li>
       </ul>
     </template>
     <casper-select-dropdown id="dropdown" no-overlap dynamic-align horizontal-align="auto" vertical-align="auto" no-cancel-on-esc-key>
@@ -245,7 +243,7 @@
     function generateObjects(n) {
       let arr = [];
       while (arr.length < n) {
-        let value = Math.round(Math.random() * n);
+        let value = Math.round(Math.random() * (n * 1000));
         let name = Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5);
         arr.push({
           "id": value,
@@ -269,7 +267,7 @@
            */
           items: {
             type: Object,
-            value: () => generateObjects(100),
+            value: () => generateObjects(700),
             observer: '_itemsChanged'
           },
           /**
@@ -293,7 +291,8 @@
            * @type {Object}
            */
           filteredItems: {
-            type: Object
+            type: Object,
+            value: () => []
           },
           /**
            * This option doesn't allow you to enter search terms that have no matches
@@ -379,6 +378,22 @@
             type: Boolean,
             value: false,
             observer: '_multiSelectionChanged'
+          },
+          /**
+           * Use multi-selection tags on the input
+           * Requires: "searchDynamic" to be true
+           * @type {Object}
+           */
+          multiSelectionTags: {
+            type: Boolean,
+            value: false
+          },
+          multiSelectionTagsClass: {
+            type: String,
+            computed: '_multiSelectionTagsDefined(multiSelectionTags)'
+          },
+          multiSelectionTagsElementParent: {
+            type: Object
           },
           /**
            * Enable or disable selections
@@ -503,6 +518,7 @@
       }
 
       _onOpenedChanged (e) {
+
         // Closing
         if ( e.detail.value === false ) {
           this.opened = false;
@@ -518,11 +534,13 @@
         // Opening
         } else {
           if ( typeof this._selectedIndex !== "undefined" ) {
-            this.$.itemsList.scrollToIndex( this._selectedIndex );
+            setTimeout(() => {
+              this.$.itemsList.scrollToIndex( this._selectedIndex );
+            }, 16);
           }
           this.opened = true;
           if ( !this.multiSelection && ( this.searchDynamic || this.searchInline ) ) {
-            this._unsetValueInInput();
+            //this._unsetValueInInput();
           }
         }
       }
@@ -564,7 +582,52 @@
       }
 
       _selectedItemsChanged ( newValue, oldValue ) {
+        if ( this.multiSelection && this.multiSelectionTags ) {
+          let list = this.multiSelectionTagsElementParent ? this.multiSelectionTagsElementParent : this.shadowRoot.querySelector('#dynamicListWithInput');
+          if ( list ) {
+            let elements = this.multiSelectionTagsElementParent ? list.querySelectorAll('li') : list.querySelectorAll("li:not(:last-child)");
+            if ( elements.length > 0 ) {
+              [...elements].forEach( el => {
+                list.removeChild(el);
+              });
+            }
+            if ( newValue.length > 0 ) {
+              newValue.forEach( el => {
+                let li = document.createElement('li');
+                let liButton = document.createElement('button');
+                let liSpan = document.createElement('span');
+                liButton.innerHTML = '&#x2716;';
+                liButton.dataset.key = el[this.keyColumn];
+                liButton.addEventListener('click', this._removeOptionFromList.bind(this));
+                liSpan.innerHTML = el[this.itemColumn];
+                li.appendChild(liButton);
+                li.appendChild(liSpan);
+                list.insertBefore(li, list.lastElementChild);
+              });
+            }
+          }
+          this.$.dropdown.refit();
+        }
         this.dispatchEvent(new CustomEvent('value-changed', {detail: {selectedItems: newValue}}));
+      }
+
+      _removeOptionFromList(e) {
+        for ( let [key, item] of Object.entries(this.selectedItems) ) {
+          if ( item[this.keyColumn] == e.path[0].dataset.key ) {
+            this.selectedItems.splice(key, 1);
+            this.selectedItems = JSON.parse(JSON.stringify( this.selectedItems ));
+            break;
+          }
+        }
+        for ( let [key, item] of Object.entries(this.ironListSelectedItems) ) {
+          if ( item[this.keyColumn] == e.path[0].dataset.key ) {
+            this.$.itemsList.deselectItem( item );
+            break;
+          }
+        }
+        this.$.dropdown.refit();
+        e.preventDefault();
+        e.stopPropagation();
       }
 
       selfInputClicked () {
@@ -572,7 +635,6 @@
       }
 
       _itemClicked (e) {
-
         if ( !this.selectionEnabled ) {
           return;
         }
@@ -588,6 +650,7 @@
             for ( let [key, item] of Object.entries(this.selectedItems) ) {
               if ( item[this.keyColumn] == e.model.item[this.keyColumn] ) {
                 this.selectedItems.splice(key, 1);
+                this.selectedItems = JSON.parse(JSON.stringify( this.selectedItems ));
                 return;
               }
             }
@@ -595,7 +658,8 @@
             if ( typeof this.selectedItems === "undefined" ) {
               this.selectedItems = [];
             }
-            this.selectedItems.push( e.model.item );
+            this.selectedItems.push(e.model.item);
+            this.selectedItems = JSON.parse(JSON.stringify( this.selectedItems ));
           }
         } else {
           if ( classList.indexOf("itemSelected") !== -1 ) {
@@ -802,6 +866,10 @@
         }
       }
 
+      _multiSelectionTagsDefined ( multiSelectionTags ) {
+        return multiSelectionTags ? 'multiSelectionWithTags' : '';
+      }
+
       _listItemHeightDefined ( listItemHeight ) {
         return "height:" + listItemHeight + "px;";
       }
@@ -810,6 +878,7 @@
         if ( this.opened ) {
           this._debounceFocus();
         }
+        console.log("selectedClass", selected, "index", index);
         return selected ? 'itemSelected' : '';
       }
 
@@ -901,17 +970,21 @@
         if ( query === this._lastQuery ) {
             return;
         }
+
         let _lastQuery = this._lastQuery;
         this._lastQuery = query;
         let filteredItems = [];
 
-        if ( query !== '' ) {
-          let highlightTemplate = this._highlightTemplate();
-          let queryNormalized = (query.normalize('NFD').replace(/[\u0300-\u036f]/g, '')).toLowerCase().split(' ').filter(function(el) { return el !== '' });
+        let queryNormalized = (query.normalize('NFD').replace(/[\u0300-\u036f]/g, '')).toLowerCase().split(' ').filter(function(el) { return el !== '' });
 
+        if ( typeof this._lastQueryNormalized !== "undefined" ) {
           if ( this._simpleArrayEqual(queryNormalized, this._lastQueryNormalized ? this._lastQueryNormalized : []) === true ) {
             return;
           }
+        }
+
+        if ( query !== '' ) {
+          let highlightTemplate = this._highlightTemplate();
 
           this._lastQueryNormalized = queryNormalized;
           this.filteredItems = [];
@@ -952,10 +1025,11 @@
           //if ( filteredItems.length === 0 ) {
             //this.searchInput.value = _lastQuery;
           //}
-
+          this.filteredItems = [];
           this.filteredItems = filteredItems;
         } else {
-          this._lastQueryNormalized = [];
+          this._lastQueryNormalized = queryNormalized;
+          this.filteredItems = [];
           this.filteredItems = this.items;
         }
 
