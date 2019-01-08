@@ -94,7 +94,6 @@
       }
 
       #searchSelf {
-        /*width: 200px;*/
         width: auto;
       }
 
@@ -110,7 +109,6 @@
         flex-direction: row;
         flex-wrap: wrap;
         background-color: white;
-        width: 200px;
         border: none;
       }
 
@@ -210,7 +208,7 @@
 
     <template is="dom-if" if="[[ searchDynamic ]]">
       <ul id="dynamicListWithInput" class$="[[ multiSelectionTagsClass ]]">
-        <li class="input"><paper-input id="searchSelf" class$="paper-input [[ multiSelectionTagsClass ]]" no-label-float label="Escolha uma opção de exemplo" on-tap="selfInputClicked"></paper-input></li>
+        <li class="input"><paper-input id="searchSelf" class$="paper-input [[ multiSelectionTagsClass ]]" no-label-float label="Escolha uma opção" on-tap="selfInputClicked"></paper-input></li>
       </ul>
     </template>
     <casper-select-dropdown id="dropdown" no-overlap dynamic-align horizontal-align="auto" vertical-align="auto" no-cancel-on-esc-key>
