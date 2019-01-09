@@ -72,8 +72,9 @@
         @apply --casper-select-listItem;
       }
 
-      .listItem:hover {
+      .listItem:not(.itemDisabled):hover {
         background-color: rgba(0, 0, 0, 0.1);
+        @apply --casper-select-listItem-hover;
       }
 
       .listItem .highlight {
@@ -89,8 +90,22 @@
         @apply --casper-select-listItem-selected;
       }
 
+      .listItem.itemSelected:hover {
+        background-color: #007e8e;
+        color: white;
+        @apply --casper-select-listItem-selected-hover;
+      }
+
+      .listItem.itemDisabled {
+        background-color: #dedede;
+        color: #00000033;
+        cursor: not-allowed;
+        @apply --casper-select-listItem-disabled;
+      }
+
       #noResults {
         text-align: center;
+        @apply --casper-select-list-no-results;
       }
 
       #searchSelf {
@@ -223,7 +238,7 @@
         <iron-list id="itemsList" scroll-target="listScroller" items="[[ filteredItems ]]" selected-items="{{ ironListSelectedItems }}">
           <template>
             <div on-tap="_itemClicked">
-              <div class$="listItem [[ _computedItemSelectedClass(selected, index) ]]" style$="[[ listItemHeightStyle ]]" inner-h-t-m-l="[[ _computedItemHtml(item._csHTML) ]]"></div>
+              <div class$="listItem [[ _computedItemSelectedClass(selected, index) ]] [[ _computedItemDisabledClass(item.csDisabled) ]]" style$="[[ listItemHeightStyle ]]" inner-h-t-m-l="[[ _computedItemHtml(item._csHTML) ]]"></div>
             </div>
           </template>
         </iron-list>
@@ -256,12 +271,21 @@
             observer: '_itemsChanged'
           },
           /**
-           * Disabled Items supplied
+           * Disabled Items Stored
            * @type {Object}
            */
           disabledItems: {
             type: Object,
-            observer: '_disabledItemsChanged'
+            observer: '_disabledItemsChanged',
+            value: () => []
+          },
+          /**
+           * Disabled Items Keys Stored
+           * @type {Array}
+           */
+          disabledItemsKeys: {
+            type: Array,
+            value: () => []
           },
           /**
            * Item Column -> default: "name"
@@ -664,7 +688,13 @@
       }
 
       _itemClicked (e) {
-        if ( !this.selectionEnabled ) {
+
+        console.log(e);
+        let classList = e.target.classList;
+
+        if ( !this.selectionEnabled || classList.contains("itemDisabled") ) {
+          e.preventDefault();
+          e.stopPropagation();
           return;
         }
 
@@ -672,10 +702,8 @@
           this.selectedItems = [];
         }
 
-        let classList = e.target.classList.toString();
-
         if ( this.multiSelection ) {
-          if ( classList.indexOf("itemSelected") !== -1 ) {
+          if ( classList.contains("itemSelected") ) {
             for ( let [key, item] of Object.entries(this.selectedItems) ) {
               if ( item[this.keyColumn] == e.model.item[this.keyColumn] ) {
                 this.selectedItems.splice(key, 1);
@@ -691,7 +719,7 @@
             this.selectedItems = JSON.parse(JSON.stringify( this.selectedItems ));
           }
         } else {
-          if ( classList.indexOf("itemSelected") !== -1 ) {
+          if ( classList.contains("itemSelected") ) {
             this.selectedItems = [];
             this._selectedIndex = -1;
           } else {
@@ -869,16 +897,13 @@
         for ( let [key, item] of Object.entries(this.items) ) {
           item._csHTML = item[this.itemColumn];
           this.items[key] = item;
-          if ( this.initialId && this.initialId == item[this.keyColumn] ) {
-
-          }
         }
         if ( !this.filtering ) {
           this.filteredItems = this.items;
         }
 
         if ( newValue.length > 0 ) {
-          this.filterItems();
+          this.filterItems(undefined, true);
           Polymer.RenderStatus.afterNextRender(this.searchInput, () => {
             this._resizeItemListHeight();
             this._resizeItemListWidth();
@@ -886,9 +911,74 @@
         }
       }
 
-      _disabledItemsChanged ( newValue, oldValue ) {
-        for ( let [key, item] of Object.entries(this.items) ) {
+      disableItems ( disabledItemsKeys, cleanPrevious = false ) {
+        let disabledItemsLength = disabledItemsKeys.length;
+        let disabledItemsFound = 0;
+        if ( disabledItemsLength > 0 ) {
+          disabledItemsKeys = disabledItemsKeys.filter(key => !this.disabledItemsKeys.includes(key));
+          disabledItemsLength = disabledItemsKeys.length;
+        }
+        if ( disabledItemsLength > 0 || cleanPrevious ) {
+          let items = [], disabledItems = [];
+          for ( let [key, item] of Object.entries(this.items) ) {
+            let newItem = JSON.parse(JSON.stringify( item ));
+            if (cleanPrevious) {
+              newItem.csDisabled = false;
+            }
+            if ( disabledItemsLength > 0 && disabledItemsFound < disabledItemsLength ) {
+              for ( let disabledItemKey of disabledItemsKeys ) {
+                if ( item[this.keyColumn] == disabledItemKey ) {
+                  disabledItems.push({index: key, key: disabledItemKey});
+                  this.disabledItemsKeys.push(disabledItemKey);
+                  newItem.csDisabled = true;
+                  disabledItemsFound++;
+                  break;
+                }
+              }
+            }
+            items.push(newItem);
+          }
+          this.disabledItems = disabledItems;
+          this.items = [];
+          this.items = items;
+          this.filterItems();
+        }
+      }
 
+      _disabledItemsChanged ( newValue, oldValue ) {
+        if ( newValue && newValue.length > 0 ) {
+          if ( this.multiSelection ) {
+            if ( this.selectedItems !== undefined ) {
+              let selectedItems = [];
+              for ( let [key, item] of Object.entries(this.selectedItems) ) {
+                if ( !this.disabledItemsKeys.includes(item[this.keyColumn]) ) {
+                  selectedItems.push(item);
+                }
+              }
+              this.selectedItems = selectedItems;
+            }
+            if ( this.lastSelectedItems !== undefined ) {
+              let lastSelectedItems = [];
+              for ( let [key, item] of Object.entries(this.lastSelectedItems) ) {
+                if ( !this.disabledItemsKeys.includes(item[this.keyColumn]) ) {
+                  lastSelectedItems.push(item);
+                }
+              }
+              this.lastSelectedItems = lastSelectedItems;
+            }
+          } else {
+            if ( this.selectedItems !== undefined ) {
+              if ( this.disabledItemsKeys.includes(this.selectedItems[this.keyColumn]) ) {
+                this.selectedItems = undefined;
+                this._clearValueInput();
+              }
+            }
+            if ( this.lastSelectedItems !== undefined ) {
+              if ( this.disabledItemsKeys.includes(this.lastSelectedItems[this.keyColumn]) ) {
+                this.lastSelectedItems = undefined;
+              }
+            }
+          }
         }
       }
 
@@ -924,6 +1014,10 @@
         return "height:" + listItemHeight + "px;";
       }
 
+      _computedItemDisabledClass ( disabled ) {
+        return disabled ? 'itemDisabled' : '';
+      }
+
       _computedItemSelectedClass ( selected, index ) {
         if ( this.opened ) {
           this._debounceFocus();
@@ -932,7 +1026,7 @@
         return selected ? 'itemSelected' : '';
       }
 
-      _debounceRender(defaultTimeout = 15) {
+      _debounceRender (defaultTimeout = 15) {
         if ( typeof this._debounceRenderTimeout !== "undefined" ) {
           clearTimeout(this._debounceRenderTimeout);
         }
@@ -1005,9 +1099,13 @@
         this._debounceFilterItemsTimeout = setTimeout((e) => this.filterItems(), 0);
       }
 
-      filterItems (query) {
+      filterItems (query, clearLast = false) {
         if ( typeof this.items === "undefined" || this.items.length === 0 || this.filtering === false ) {
           return;
+        }
+
+        if ( clearLast ) {
+          this._lastQueryNormalized = this._lastQuery = undefined;
         }
 
         query = query || (this.searchInput ? this.searchInput.value : '');
@@ -1056,11 +1154,12 @@
                   itemText += itemValue.substring(modifications[m][1] + 1, modifications[m+1][0]);
                 }
               }
-              let newItem = this._copyObject(item);
+              let newItem = JSON.parse(JSON.stringify( item ));
               newItem["_csHTML"] = itemText;
               filteredItems.push(newItem);
             }
           }
+          console.log("just filtered new items for you");
 
           // @REVIEW:
           // This doesn't seem necessary nor important at this stage..
@@ -1078,7 +1177,7 @@
         }
 
         if ( this.resizeOnFilter ) {
-          this._resizeItemListHeight(true);
+          this._resizeItemListHeight();
         }
 
         try {
@@ -1087,7 +1186,7 @@
 
       }
 
-      _resizeItemListHeight (useFiltered = false) {
+      _resizeItemListHeight (useFiltered = true) {
         let items = useFiltered ? this.filteredItems : this.items;
         if ( typeof this.listHeight != "undefined" && this.listHeight > 0 ) {
           this.$.itemsList.style.height = (this.listHeight) + 'px';
@@ -1136,6 +1235,10 @@
         }
       }
 
+      value() {
+        return this.selectedItems;
+      }
+
       _highlightTemplate () {
         return { begin: '<' + this.highlightTemplateTag + ' class="' + this.highlightTtemplateClass + '">', end: '</' + this.highlightTemplateTag + '>' };
       }
@@ -1152,16 +1255,6 @@
         return true;
       }
 
-      _copyObject (src) {
-        let copy = {};
-        for ( let prop in src ) {
-          if ( src.hasOwnProperty(prop) ) {
-            copy[prop] = src[prop];
-          }
-        }
-        return copy;
-      }
-
       _mergeOverlappedRanges (ranges) {
         let result = [], last;
 
@@ -1175,10 +1268,6 @@
         });
 
         return result;
-      }
-
-      value() {
-        return this.selectedItems;
       }
 
     }
