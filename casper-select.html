@@ -401,6 +401,21 @@
             value: () => []
           },
           /**
+           * HTML Template for the items, with curly brackets for object value replacement
+           * @type {String}
+           */
+          template: {
+            type: String
+          },
+          /**
+           * CSS Styling for the HTML Template that overrides
+           * @type {Object}
+           */
+          templateStyle: {
+            type: String,
+            observer: '_templateStyleChanged'
+          },
+          /**
            * Template height per item in px
            * @type {Number}
            */
@@ -917,9 +932,36 @@
         }
       }
 
+      _templateStyleChanged ( newTemplateStyle, oldTemplateStyle ) {
+        const shadowRoot = this.shadowRoot;
+        if ( shadowRoot.querySelector('#templateStyle') ) {
+          shadowRoot.querySelector('#templateStyle').remove();
+        }
+        if ( newTemplateStyle !== undefined ) {
+          const templateStyle = document.createElement('style');
+          templateStyle.setAttribute('id', 'templateStyle');
+          templateStyle.textContent = newTemplateStyle;
+          shadowRoot.appendChild(templateStyle);
+        }
+      }
+
       _itemsChanged ( newItems, oldItems ) {
+        if ( this.template && newItems.length > 0 ) {
+          let found = [], rxp = /\{([^}]+)\}/g, curMatch;
+          while ( curMatch = rxp.exec( this.template ) ) {
+            found.push( curMatch[1] );
+          }
+          this._templateToReplace = found;
+        }
+
         for ( let [key, item] of Object.entries(this.items) ) {
-          item._csHTML = item[this.itemColumn];
+          if ( this.template && this._templateToReplace !== undefined ) {
+            let mapping = {};
+            this._templateToReplace.forEach((e,i) => mapping[`{${e}}`] = item[e]);
+            item._csHTML = this.template.replace(/\{\w+\}/ig, n => mapping[n]);
+          } else {
+            item._csHTML = item[this.itemColumn];
+          }
           this.items[key] = item;
         }
         if ( !this.filtering ) {
