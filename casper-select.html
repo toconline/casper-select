@@ -69,11 +69,12 @@
         line-height: 20px;
         white-space: nowrap;
         text-overflow: ellipsis;
+        background-color: white;
         @apply --casper-select-listItem;
       }
 
       .listItem:not(.itemDisabled):hover {
-        background-color: rgba(0, 0, 0, 0.1);
+        background-color: #e5e5e5;
         @apply --casper-select-listItem-hover;
       }
 
@@ -223,7 +224,14 @@
 
     <template is="dom-if" if="[[ searchDynamic ]]">
       <ul id="dynamicListWithInput" class$="[[ multiSelectionTagsClass ]]">
-        <li class="input"><paper-input id="searchSelf" class$="paper-input [[ multiSelectionTagsClass ]]" no-label-float="[[ noLabelFloat ]]" label="[[ label ]]" on-tap="selfInputClicked"></paper-input></li>
+        <li class="input">
+          <paper-input id="searchSelf"
+            class$="paper-input [[ multiSelectionTagsClass ]]"
+            no-label-float="[[ noLabelFloat ]]"
+            label="[[ label ]]"
+            on-tap="selfInputClicked">
+          </paper-input>
+        </li>
       </ul>
     </template>
     <casper-select-dropdown id="dropdown" no-overlap dynamic-align horizontal-align="auto" vertical-align="auto" no-cancel-on-esc-key>
@@ -235,10 +243,16 @@
         </paper-input>
       </template>
       <div id="listScroller">
-        <iron-list id="itemsList" scroll-target="listScroller" items="[[ filteredItems ]]" selected-items="{{ ironListSelectedItems }}">
+        <iron-list id="itemsList"
+          scroll-target="listScroller"
+          items="[[ filteredItems ]]"
+          selected-items="{{ ironListSelectedItems }}">
           <template>
             <div on-tap="_itemClicked">
-              <div class$="listItem [[ _computedItemSelectedClass(selected, index) ]] [[ _computedItemDisabledClass(item.csDisabled) ]]" style$="[[ listItemHeightStyle ]]" inner-h-t-m-l="[[ _computedItemHtml(item._csHTML) ]]"></div>
+              <div class$="listItem [[ _computedItemSelectedClass(selected, index) ]] [[ _computedItemDisabledClass(item.csDisabled) ]]"
+                style$="[[ listItemHeightStyle ]]"
+                inner-h-t-m-l="[[ _computedItemHtml(item._csHTML) ]]">
+              </div>
             </div>
           </template>
         </iron-list>
@@ -562,8 +576,17 @@
 
 
         this.$.dropdown.addEventListener('opened-changed', e => this._onOpenedChanged(e));
+        this.$.dropdown.addEventListener('iron-overlay-canceled', e => this._cancelOverlay(e));
+
 
         window.select = this;
+      }
+
+      _cancelOverlay (e) {
+        // Original event click path
+        if  ( e.detail.detail.sourceEvent.path.includes(this.searchInput) ) {
+          e.preventDefault();
+        }
       }
 
       _onOpenedChanged (e) {
@@ -616,8 +639,8 @@
         return ( searchInline === false && searchCombo === false );
       }
 
-      _searchDynamicChanged ( newValue, oldValue ) {
-        if ( newValue && !oldValue ) {
+      _searchDynamicChanged ( newSearchDynamicValue, oldSearchDynamicValue ) {
+        if ( newSearchDynamicValue && !oldSearchDynamicValue ) {
           Polymer.RenderStatus.afterNextRender(this.shadowRoot.querySelector('#searchSelf'), () => {
             if ( this.items && this.items.length > 0 ) {
               this._resizeItemListHeight();
@@ -630,7 +653,7 @@
         }
       }
 
-      _selectedItemsChanged ( newValue, oldValue ) {
+      _selectedItemsChanged ( newSelectedItems, oldSelectedItems ) {
         if ( this.multiSelection && this.multiSelectionTags ) {
           let list = this.multiSelectionTagsElementParent ? this.multiSelectionTagsElementParent : this.shadowRoot.querySelector('#dynamicListWithInput');
           if ( list ) {
@@ -640,8 +663,8 @@
                 list.removeChild(el);
               });
             }
-            if ( newValue !== undefined && newValue.length > 0 ) {
-              newValue.forEach( el => {
+            if ( newSelectedItems !== undefined && newSelectedItems.length > 0 ) {
+              newSelectedItems.forEach( el => {
                 let li = document.createElement('li');
                 let liButton = document.createElement('button');
                 let liSpan = document.createElement('span');
@@ -657,7 +680,7 @@
           }
           this.$.dropdown.refit();
         }
-        this.dispatchEvent(new CustomEvent('value-changed', {detail: {selectedItems: newValue}}));
+        this.dispatchEvent(new CustomEvent('value-changed', {detail: {selectedItems: newSelectedItems}}));
       }
 
       _removeOptionFromList(e) {
@@ -681,7 +704,9 @@
 
       selfInputClicked () {
         if ( this.items && this.items.length > 0 ) {
-          this.openDropdown();
+          if ( !this.opened ) {
+            this.openDropdown();
+          }
         } else {
           this.searchInput.blur();
         }
@@ -689,7 +714,6 @@
 
       _itemClicked (e) {
 
-        console.log(e);
         let classList = e.target.classList;
 
         if ( !this.selectionEnabled || classList.contains("itemDisabled") ) {
@@ -843,8 +867,8 @@
         }
       }
 
-      _targetElementChanged ( newValue, oldValue ) {
-        if ( typeof newValue === "object" && this.searchInline === true ) {
+      _targetElementChanged ( newTargetElement, oldTargetElement ) {
+        if ( typeof newTargetElement === "object" && this.searchInline === true ) {
           this._unbindSearchInputListeners();
           this.searchInput = this.targetElement;
           this._bindSearchInputListeners();
@@ -868,8 +892,8 @@
         }
       }
 
-      _searchComboChanged ( newValue, oldValue ) {
-        if ( newValue && !oldValue ) {
+      _searchComboChanged ( newSearchComboValue, oldSearchComboValue ) {
+        if ( newSearchComboValue && !oldSearchComboValue ) {
           this.searchInline = false;
           Polymer.RenderStatus.afterNextRender(this.shadowRoot.querySelector('#searchInput'), () => {
             this.searchInput = this.shadowRoot.querySelector('#searchInput');
@@ -878,22 +902,22 @@
           Polymer.RenderStatus.afterNextRender(this.shadowRoot.querySelector("#suffixIcon"), () => {
             this.shadowRoot.querySelector("#suffixIcon").addEventListener('click', this._boundClearSearch);
           });
-        } else if ( newValue === false && oldValue === true ) {
+        } else if ( newSearchComboValue === false && oldSearchComboValue === true ) {
           this._unbindSearchInputListeners();
         }
       }
 
-      _searchInlineChanged ( newValue, oldValue ) {
-        if ( newValue && !oldValue ) {
+      _searchInlineChanged ( newSearchInlineValue, oldSearchInlineValue ) {
+        if ( newSearchInlineValue && !oldSearchInlineValue ) {
           this.searchCombo = false;
           this.searchInput = this.targetElement;
           this._bindSearchInputListeners();
-        } else if ( newValue === false && oldValue !== newValue ) {
+        } else if ( newSearchInlineValue === false && oldSearchInlineValue !== newSearchInlineValue ) {
           this._unbindSearchInputListeners();
         }
       }
 
-      _itemsChanged ( newValue, oldValue ) {
+      _itemsChanged ( newItems, oldItems ) {
         for ( let [key, item] of Object.entries(this.items) ) {
           item._csHTML = item[this.itemColumn];
           this.items[key] = item;
@@ -902,51 +926,74 @@
           this.filteredItems = this.items;
         }
 
-        if ( newValue.length > 0 ) {
+        if ( newItems.length > 0 ) {
           this.filterItems(undefined, true);
           Polymer.RenderStatus.afterNextRender(this.searchInput, () => {
             this._resizeItemListHeight();
             this._resizeItemListWidth();
           });
+          if ( typeof this._ignoreDisabledItems === "undefined" || this._ignoreDisabledItems === false ) {
+            const currentDisabledItemsKeys = this.disabledItemsKeys;
+            this.disabledItems = this.disabledItemsKeys = [];
+            this.disableItems( currentDisabledItemsKeys );
+          }
+        } else {
+          if ( typeof this._ignoreDisabledItems === "undefined" || this._ignoreDisabledItems === false ) {
+            this._unsetValueInInput();
+          }
         }
       }
 
-      disableItems ( disabledItemsKeys, cleanPrevious = false ) {
+      enableItems ( enabledItemsKeys ) {
+        this.disableItems( this.disabledItemsKeys.filter(key => !enabledItemsKeys.includes(key)), true );
+      }
+
+      disableAllItems () {
+        this.disableItems ( [], false, true );
+      }
+
+      disableItems ( disabledItemsKeys, cleanPrevious = false, disableAll = false ) {
         let disabledItemsLength = disabledItemsKeys.length;
         let disabledItemsFound = 0;
         if ( disabledItemsLength > 0 ) {
           disabledItemsKeys = disabledItemsKeys.filter(key => !this.disabledItemsKeys.includes(key));
           disabledItemsLength = disabledItemsKeys.length;
         }
-        if ( disabledItemsLength > 0 || cleanPrevious ) {
+        if ( disabledItemsLength > 0 || cleanPrevious || disableAll ) {
+          this.disabledItemsKeys = disabledItemsKeys;
           let items = [], disabledItems = [];
           for ( let [key, item] of Object.entries(this.items) ) {
             let newItem = JSON.parse(JSON.stringify( item ));
-            if (cleanPrevious) {
+            if ( cleanPrevious ) {
               newItem.csDisabled = false;
+            } else if ( disableAll ) {
+              newItem.csDisabled = true;
             }
             if ( disabledItemsLength > 0 && disabledItemsFound < disabledItemsLength ) {
               for ( let disabledItemKey of disabledItemsKeys ) {
                 if ( item[this.keyColumn] == disabledItemKey ) {
-                  disabledItems.push({index: key, key: disabledItemKey});
-                  this.disabledItemsKeys.push(disabledItemKey);
                   newItem.csDisabled = true;
                   disabledItemsFound++;
                   break;
                 }
               }
             }
+            if ( newItem.csDisabled ) {
+              disabledItems.push({index: key, key: item[this.keyColumn]});
+            }
             items.push(newItem);
           }
           this.disabledItems = disabledItems;
+          this._ignoreDisabledItems = true;
           this.items = [];
           this.items = items;
+          this._ignoreDisabledItems = false;
           this.filterItems();
         }
       }
 
-      _disabledItemsChanged ( newValue, oldValue ) {
-        if ( newValue && newValue.length > 0 ) {
+      _disabledItemsChanged ( newDisabledItems, oldDisabledItems ) {
+        if ( newDisabledItems && newDisabledItems.length > 0 ) {
           if ( this.multiSelection ) {
             if ( this.selectedItems !== undefined ) {
               let selectedItems = [];
@@ -970,7 +1017,9 @@
             if ( this.selectedItems !== undefined ) {
               if ( this.disabledItemsKeys.includes(this.selectedItems[this.keyColumn]) ) {
                 this.selectedItems = undefined;
-                this._clearValueInput();
+                if ( !this.opened ) {
+                  this._clearValueInput();
+                }
               }
             }
             if ( this.lastSelectedItems !== undefined ) {
@@ -987,8 +1036,8 @@
         return html;
       }
 
-      _multiSelectionChanged ( newValue, oldValue ) {
-        if ( newValue ) {
+      _multiSelectionChanged ( newMultiSelectionValue, oldMultiSelectionValue ) {
+        if ( newMultiSelectionValue ) {
           this.$.itemsList.setAttribute('multi-selection', '');
         } else {
           this.$.itemsList.removeAttribute('multi-selection');
@@ -996,9 +1045,9 @@
         this.selectedItems = [];
       }
 
-      _selectionEnabledChanged ( newValue, oldValue ) {
-        if ( newValue )  {
-          this.$.itemsList.setAttribute('selection-enabled', '')
+      _selectionEnabledChanged ( newSelectionEnabledValue, oldSelectionEnabledValue ) {
+        if ( newSelectionEnabledValue )  {
+          this.$.itemsList.setAttribute('selection-enabled', '');
         } else {
           this.$.itemsList.removeAttribute('selection-enabled');
           this.ironListSelectedItems = null;
@@ -1044,7 +1093,7 @@
         }
         this._debounceFocusTimeout = setTimeout(() => {
           this.searchInput.blur();
-          this.searchInput.focus()
+          this.searchInput.focus();
         }, defaultTimeout);
       }
 
@@ -1159,7 +1208,6 @@
               filteredItems.push(newItem);
             }
           }
-          console.log("just filtered new items for you");
 
           // @REVIEW:
           // This doesn't seem necessary nor important at this stage..
