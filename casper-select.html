@@ -257,9 +257,7 @@
           </template>
         </iron-list>
         <template is="dom-if" if="[[ noVisibleItems ]]">
-          <div id="noResults">
-            Lista vazia.
-          </div>
+          <div id="noResults">[[ emptyList ]]</div>
         </template>
       </div>
       <slot name="status"></slot>
@@ -339,6 +337,14 @@
           label: {
             type: String,
             value: 'Escolha uma opção'
+          },
+          /**
+           * Empty List String
+           * @type {String}
+           */
+          emptyList: {
+            type: String,
+            value: 'Lista vazia'
           },
           /**
            * Items actually present in the select
