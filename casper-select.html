@@ -561,6 +561,14 @@
            */
           listWidth: String,
           /**
+           * Enforce select width to match container width
+           * @type {Object}
+           */
+          fixedContainerWidth: {
+            type: Boolean,
+            value: false
+          },
+          /**
            * Adjust list height when filtering results
            * @type {Boolean}
            */
@@ -1214,7 +1222,7 @@
         this._lastQuery = query;
         let filteredItems = [];
 
-        let queryNormalized = (query.normalize('NFD').replace(/[\u0300-\u036f]/g, '')).toLowerCase().split(' ').filter(function(el) { return el !== '' });
+        let queryNormalized = (query.normalize('NFD').replace(/[\u0300-\u036f]/g, '')).toLowerCase().split(' ').filter((el) => el !== '');
 
         if ( typeof this._lastQueryNormalized !== "undefined" ) {
           if ( this._simpleArrayEqual(queryNormalized, this._lastQueryNormalized ? this._lastQueryNormalized : []) === true ) {
@@ -1306,8 +1314,18 @@
         if ( this.listWidth != undefined ) {
           this.$.dropdown.style.width = this.listWidth;
         } else if ( this.items && this.items.length > 0 ) {
-          let longestItem = this.items.reduce( (a, b) => a[this.itemColumn].length > b[this.itemColumn].length ? a : b );
-          this.$.dropdown.style.width = Math.max(this.targetElement.offsetWidth, longestItem[this.itemColumn].length * this.listItemWidth) + 'px';
+          if ( this.fixedContainerWidth && this.targetElement ) {
+            this.$.dropdown.style.width = this.targetElement.offsetWidth + 'px';
+          } else {
+            const longestItem = this.items.reduce( (a, b) => a[this.itemColumn].length > b[this.itemColumn].length ? a : b );
+            // this._measureCanvas = this._measureCanvas || document.createElement('canvas');
+            /*const listItems = this.$.itemsList.shadowRoot.querySelector('#items').querySelector('slot').assignedNodes();
+            const listItemElement = listItems.find((e) => {
+              return ( e.childNodes.length > 0 && e.lastElementChild.classList.contains('listItem') );
+            });
+            this._measureCanvas.font = window.getComputedStyle(listItemElement).font;*/
+            this.$.dropdown.style.width = Math.max(this.targetElement.offsetWidth, longestItem[this.itemColumn].length * this.listItemWidth) + 'px';
+          }
         } else if ( this.targetElement ) {
           this.$.dropdown.style.width = this.targetElement.offsetWidth + 'px';
         }
@@ -1336,7 +1354,7 @@
       }
 
       _highlightTemplate () {
-        return { begin: '<' + this.highlightTemplateTag + ' class="' + this.highlightTtemplateClass + '">', end: '</' + this.highlightTemplateTag + '>' };
+        return { begin: `<${this.highlightTemplateTag} class="${this.highlightTtemplateClass}">`, end: `</${this.highlightTemplateTag}>` };
       }
 
       _simpleArrayEqual (arr1, arr2) {
@@ -1353,16 +1371,14 @@
 
       _mergeOverlappedRanges (ranges) {
         let result = [], last;
-
-        ranges.sort(function(a, b) { return a[0]-b[0] || a[1]-b[1] })
-        ranges.forEach(function (r) {
+        ranges.sort((a, b) => a[0]-b[0] || a[1]-b[1]);
+        ranges.forEach(r => {
           if ( !last || (r[0] - 1) > last[1] ) {
             result.push(last = r);
           } else if ( (r[1] - 1) > last[1] ) {
             last[1] = r[1];
           }
         });
-
         return result;
       }
 
