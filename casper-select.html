@@ -603,17 +603,14 @@
         this._boundSearchInputKeyPressHandler = this._searchInputKeyPressHandler.bind(this);
         this._boundClearSearch = this._clearSearch.bind(this);
 
-
         this.$.dropdown.addEventListener('opened-changed', e => this._onOpenedChanged(e));
         this.$.dropdown.addEventListener('iron-overlay-canceled', e => this._cancelOverlay(e));
-
 
         window.select = this;
       }
 
       _cancelOverlay (e) {
-        // Original event click path
-        if  ( e.detail.detail.sourceEvent.path.includes(this.searchInput) ) {
+        if  ( e.detail.path.includes(this.searchInput) ) {
           e.preventDefault();
         }
       }
@@ -712,7 +709,7 @@
         this.dispatchEvent(new CustomEvent('value-changed', {detail: {selectedItems: newSelectedItems}}));
       }
 
-      _removeOptionFromList(e) {
+      _removeOptionFromList (e) {
         for ( let [key, item] of Object.entries(this.selectedItems) ) {
           if ( item[this.keyColumn] == e.path[0].dataset.key ) {
             this.selectedItems.splice(key, 1);
@@ -1087,7 +1084,7 @@
         }
       }
 
-      _computedItemHtml(html) {
+      _computedItemHtml (html) {
         this._debounceRender();
         return html;
       }
@@ -1349,7 +1346,7 @@
         }
       }
 
-      value() {
+      value () {
         return this.selectedItems;
       }
 
