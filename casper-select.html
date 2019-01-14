@@ -913,6 +913,9 @@
 
       _bindSearchInputListeners () {
         if ( this.searchInput ) {
+          if ( this.disabled ) {
+            this.searchInput.setAttribute('disabled', '');
+          }
           this._unbindSearchInputListeners();
           this.searchInput.addEventListener('value-changed', this._boundDebounceFilterItems);
           this.searchInput.addEventListener('keydown', this._boundSearchInputKeyDownHandler);
@@ -1101,9 +1104,9 @@
 
       _selectDisabled ( isSelectDisabled, wasSelectDisabled ) {
         if ( isSelectDisabled === true) {
-          Polymer.RenderStatus.afterNextRender(this.searchInput, {
+          if ( this.searchInput ) {
             this.searchInput.setAttribute('disabled', '');
-          });
+          }
           if ( this.opened ) {
             this.closeDropdown();
           }
