@@ -241,7 +241,7 @@
     </style>
 
     <template is="dom-if" if="[[ searchDynamic ]]">
-      <ul id="dynamicListWithInput" class$="[[ multiSelectionTagsClass ]]">
+      <ul id="dynamicListWithInput" class$="[[ multiSelectionTagsClass ]] [[ _computedDisabledSelect(disabled) ]]">
         <li class="input">
           <paper-input id="searchSelf"
             class$="paper-input [[ multiSelectionTagsClass ]]"
