@@ -33,17 +33,21 @@
 
       #dropdown {
         overflow: hidden;
-        border: 1px solid black;
+        padding: 4px;
+        border-radius: 0 0 3px 3px;
+        border: 1px solid #aaa;
         background-color: white;
         display: flex;
         flex-direction: column;
         max-height: 99vh;
+        box-shadow: rgba(25, 59, 103, 0.05) 0px 0px 0px 1px,
+                    rgba(28, 55, 90, 0.16) 0px 2px 6px -1px,
+                    rgba(28, 50, 79, 0.38) 0px 8px 24px -4px;
       }
 
        #listScroller {
         overflow: auto;
         -ms-overflow-style: -ms-autohiding-scrollbar;
-        min-height: 70px;
         max-height: var(--casper-combo-box-overlay-max-height, 80vh);
 
         /* Fixes item background from getting on top of scrollbars on Safari */
@@ -64,17 +68,18 @@
 
       .listItem {
         margin: 0;
-        padding: 0 4px;
         overflow: hidden;
         line-height: 20px;
         white-space: nowrap;
-        text-overflow: ellipsis;
+        padding: 3px 7px 4px;
+        box-sizing: border-box;
         background-color: white;
         @apply --casper-select-listItem;
       }
 
       .listItem:not(.itemDisabled):hover {
-        background-color: #e5e5e5;
+        color: white;
+        background-color: var(--primary-color);
         @apply --casper-select-listItem-hover;
       }
 
@@ -86,14 +91,26 @@
       }
 
       .listItem.itemSelected {
-        background-color: #007e8e;
         color: white;
+        background-color: #007e8e;
         @apply --casper-select-listItem-selected;
       }
 
+      .listItem::before {
+        width: 15px;
+        content: "";
+        margin-right: 5px;
+        text-align: center;
+        display: inline-block;
+      }
+
+      .listItem.itemSelected::before {
+        content: "\2714";
+      }
+
       .listItem.itemSelected:hover {
-        background-color: #007e8e;
         color: white;
+        background-color: #007e8e;
         @apply --casper-select-listItem-selected-hover;
       }
 
@@ -200,6 +217,7 @@
         };
         --paper-input-container-input: {
           color: black;
+          text-overflow: ellipsis;
         };
         --paper-input-prefix: {
           color: white;
@@ -428,7 +446,7 @@
            */
           listItemHeight: {
             type: Number,
-            value: 20
+            value: 27
           },
           /**
            * Template width per item in px
@@ -1005,7 +1023,9 @@
           }
         } else {
           if ( typeof this._ignoreDisabledItems === "undefined" || this._ignoreDisabledItems === false ) {
-            this._unsetValueInInput();
+            Polymer.RenderStatus.afterNextRender(this.searchInput, () => {
+              this._unsetValueInInput();
+            });
           }
         }
       }
