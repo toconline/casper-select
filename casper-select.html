@@ -1101,13 +1101,12 @@
 
       _selectDisabled ( isSelectDisabled, wasSelectDisabled ) {
         if ( isSelectDisabled === true) {
-          if ( this.searchInput ) {
+          Polymer.RenderStatus.afterNextRender(this.searchInput, {
             this.searchInput.setAttribute('disabled', '');
-          }
+          });
           if ( this.opened ) {
             this.closeDropdown();
           }
-          //
         } else {
           if ( this.searchInput ) {
             this.searchInput.removeAttribute('disabled');
