@@ -620,7 +620,7 @@
             type: Boolean,
             value: false
           }
-        }
+        };
       }
 
       ready () {
@@ -707,7 +707,7 @@
         }
       }
 
-      _selectedItemsChanged ( newSelectedItems, oldSelectedItems ) {
+      _selectedItemsChanged ( newSelectedItems ) {
         if ( this.multiSelection && this.multiSelectionTags ) {
           let list = this.multiSelectionTagsElementParent ? this.multiSelectionTagsElementParent : this.shadowRoot.querySelector('#dynamicListWithInput');
           if ( list ) {
@@ -734,7 +734,7 @@
           }
           this.$.dropdown.refit();
         }
-        this.dispatchEvent(new CustomEvent('value-changed', {detail: {selectedItems: newSelectedItems}}));
+        this.dispatchEvent(new CustomEvent('value-changed', { detail: { selectedItems: newSelectedItems } }));
       }
 
       _removeOptionFromList (e) {
@@ -921,7 +921,7 @@
         }
       }
 
-      _targetElementChanged ( newTargetElement, oldTargetElement ) {
+      _targetElementChanged ( newTargetElement ) {
         if ( typeof newTargetElement === "object" && this.searchInline === true ) {
           this._unbindSearchInputListeners();
           this.searchInput = this.targetElement;
@@ -974,7 +974,7 @@
         }
       }
 
-      _templateStyleChanged ( newTemplateStyle, oldTemplateStyle ) {
+      _templateStyleChanged ( newTemplateStyle ) {
         const shadowRoot = this.shadowRoot;
         if ( shadowRoot.querySelector('#templateStyle') ) {
           shadowRoot.querySelector('#templateStyle').remove();
@@ -987,7 +987,7 @@
         }
       }
 
-      _itemsChanged ( newItems, oldItems ) {
+      _itemsChanged ( newItems ) {
         if ( this.template && newItems.length > 0 ) {
           let found = [], rxp = /\{([^}]+)\}/g, curMatch;
           while ( curMatch = rxp.exec( this.template ) ) {
@@ -999,7 +999,7 @@
         for ( let [key, item] of Object.entries(this.items) ) {
           if ( this.template && this._templateToReplace !== undefined ) {
             let mapping = {};
-            this._templateToReplace.forEach((e,i) => mapping[`{${e}}`] = item[e]);
+            this._templateToReplace.forEach(e => mapping[`{${e}}`] = item[e]);
             item._csHTML = this.template.replace(/\{\w+\}/ig, n => mapping[n]);
           } else {
             item._csHTML = item[this.itemColumn];
@@ -1065,7 +1065,7 @@
               }
             }
             if ( newItem.csDisabled ) {
-              disabledItems.push({index: key, key: item[this.keyColumn]});
+              disabledItems.push({ index: key, key: item[this.keyColumn] });
             }
             items.push(newItem);
           }
@@ -1078,7 +1078,8 @@
         }
       }
 
-      _disabledItemsChanged ( newDisabledItems, oldDisabledItems ) {
+      _disabledItemsChanged ( newDisabledItems ) {
+        const a = { a: 1,b: 2 };
         if ( newDisabledItems && newDisabledItems.length > 0 ) {
           if ( this.multiSelection ) {
             if ( this.selectedItems !== undefined ) {
@@ -1122,7 +1123,7 @@
         return html;
       }
 
-      _selectDisabled ( isSelectDisabled, wasSelectDisabled ) {
+      _selectDisabled ( isSelectDisabled ) {
         if ( isSelectDisabled === true) {
           if ( this.searchInput ) {
             this.searchInput.setAttribute('disabled', '');
@@ -1137,7 +1138,7 @@
         }
       }
 
-      _multiSelectionChanged ( newMultiSelectionValue, oldMultiSelectionValue ) {
+      _multiSelectionChanged ( newMultiSelectionValue ) {
         if ( newMultiSelectionValue ) {
           this.$.itemsList.setAttribute('multi-selection', '');
         } else {
@@ -1146,7 +1147,7 @@
         this.selectedItems = [];
       }
 
-      _selectionEnabledChanged ( newSelectionEnabledValue, oldSelectionEnabledValue ) {
+      _selectionEnabledChanged ( newSelectionEnabledValue ) {
         if ( newSelectionEnabledValue )  {
           this.$.itemsList.setAttribute('selection-enabled', '');
         } else {
@@ -1172,7 +1173,7 @@
         return disabled ? 'itemDisabled' : '';
       }
 
-      _computedItemSelectedClass ( selected, index ) {
+      _computedItemSelectedClass ( selected ) {
         if ( this.opened ) {
           this._debounceFocus();
         }
@@ -1250,7 +1251,7 @@
         } else {
           clearTimeout(this._debounceFilterItemsTimeout);
         }
-        this._debounceFilterItemsTimeout = setTimeout((e) => this.filterItems(), 0);
+        this._debounceFilterItemsTimeout = setTimeout(() => this.filterItems(), 0);
       }
 
       filterItems (query, clearLast = false) {
@@ -1267,7 +1268,6 @@
             return;
         }
 
-        let _lastQuery = this._lastQuery;
         this._lastQuery = query;
         let filteredItems = [];
 
@@ -1335,7 +1335,9 @@
 
         try {
             this.shadowRoot.querySelector("#suffixIcon").style.opacity = this._lastQueryNormalized.length > 0 ? 1 : 0;
-        } catch (e) {}
+        } catch (e) {
+          // Sometimes the #suffixIcon might not exist.
+        }
 
       }
 
