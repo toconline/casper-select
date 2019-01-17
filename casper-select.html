@@ -699,7 +699,7 @@
             if ( this.items && this.items.length > 0 ) {
               this._resizeItemListHeight();
             }
-            this._setPositionTarget(this.shadowRoot.querySelector('#searchSelf'));
+            this._setMultiSelectionTarget();
             this._unbindSearchInputListeners();
             this.searchInput = this.targetElement;
             this._bindSearchInputListeners();
@@ -708,15 +708,10 @@
       }
 
       _selectedItemsChanged ( newSelectedItems ) {
+        let list = this.multiSelectionTagsElementParent ? this.multiSelectionTagsElementParent : this.shadowRoot.querySelector('#dynamicListWithInput');
         if ( this.multiSelection && this.multiSelectionTags ) {
-          let list = this.multiSelectionTagsElementParent ? this.multiSelectionTagsElementParent : this.shadowRoot.querySelector('#dynamicListWithInput');
           if ( list ) {
-            let elements = this.multiSelectionTagsElementParent ? list.querySelectorAll('li') : list.querySelectorAll("li:not(:last-child)");
-            if ( elements.length > 0 ) {
-              [...elements].forEach( el => {
-                list.removeChild(el);
-              });
-            }
+            this._removeDynamicListSelectedValues(list);
             if ( newSelectedItems !== undefined && newSelectedItems.length > 0 ) {
               newSelectedItems.forEach( el => {
                 let li = document.createElement('li');
@@ -733,8 +728,22 @@
             }
           }
           this.$.dropdown.refit();
+        } else {
+          if ( list ) {
+            this._removeDynamicListSelectedValues(list);
+            this.$.dropdown.refit();
+          }
         }
         this.dispatchEvent(new CustomEvent('value-changed', { detail: { selectedItems: newSelectedItems } }));
+      }
+
+      _removeDynamicListSelectedValues( list ) {
+        let elements = this.multiSelectionTagsElementParent ? list.querySelectorAll('li') : list.querySelectorAll("li:not(:last-child)");
+        if ( elements.length > 0 ) {
+          [...elements].forEach( el => {
+            list.removeChild(el);
+          });
+        }
       }
 
       _removeOptionFromList (e) {
@@ -1137,13 +1146,31 @@
         }
       }
 
-      _multiSelectionChanged ( newMultiSelectionValue ) {
+      _multiSelectionChanged ( newMultiSelectionValue, oldMultiSelectionValue ) {
         if ( newMultiSelectionValue ) {
           this.$.itemsList.setAttribute('multi-selection', '');
+          this._setMultiSelectionTarget();
         } else {
           this.$.itemsList.removeAttribute('multi-selection');
+          this.multiSelectionTags = false;
         }
         this.selectedItems = [];
+        this.lastSelectedItems = [];
+      }
+
+      _setMultiSelectionTarget () {
+        if ( this.multiSelection ) {
+          if ( !this.multiSelectionTagsElementParent ) {
+            this.multiSelectionTags = true;
+          }
+          if ( this.multiSelectionTags ) {
+            this._setPositionTarget(this.shadowRoot.querySelector('#dynamicListWithInput'));
+          } else {
+            this._setPositionTarget(this.shadowRoot.querySelector('#searchSelf'));
+          }
+        } else {
+          this._setPositionTarget(this.shadowRoot.querySelector('#searchSelf'));
+        }
       }
 
       _selectionEnabledChanged ( newSelectionEnabledValue ) {
