@@ -990,7 +990,7 @@
       _itemsChanged ( newItems ) {
         if ( this.template && newItems.length > 0 ) {
           let found = [], rxp = /\{([^}]+)\}/g, curMatch;
-          while ( curMatch = rxp.exec( this.template ) ) {
+          while ( (curMatch = rxp.exec( this.template )) ) {
             found.push( curMatch[1] );
           }
           this._templateToReplace = found;
@@ -1079,7 +1079,6 @@
       }
 
       _disabledItemsChanged ( newDisabledItems ) {
-        const a = { a: 1,b: 2 };
         if ( newDisabledItems && newDisabledItems.length > 0 ) {
           if ( this.multiSelection ) {
             if ( this.selectedItems !== undefined ) {
