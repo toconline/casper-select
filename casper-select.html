@@ -924,9 +924,19 @@
               }
             }
             break;
+          case 37: // left
+            if ( this._doesntExistYet ) {
+              this._moveSelection('up');
+            }
+            break;
           case 38: // up
             this._moveSelection('up');
             event.stopPropagation();
+            break;
+          case 39: // right
+            if ( this._doesntExistYet ) {
+              this._moveSelection('down');
+            }
             break;
           case 40: // down
             this._moveSelection('down');
