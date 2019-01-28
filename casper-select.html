@@ -1417,7 +1417,7 @@
         } else {
           this.$.itemsList.style.height = (Object.keys(items).length * this.listItemHeight) + 'px';
         }
-        if ( this.searchInput && this.initialId && !this.multiSelection && this.filteredItems && this.filteredItems.length > 0 ) {
+        if ( this.searchInput && this.initialId != undefined && !this.multiSelection && this.filteredItems && this.filteredItems.length > 0 ) {
           for ( let [key, item] of Object.entries(this.filteredItems) ) {
             if ( this.initialId == item[this.keyColumn] ) {
               this.$.itemsList.selectItem( this.$.itemsList.items[key] );
