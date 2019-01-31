@@ -448,9 +448,8 @@
            * DO NOT MANIPULATE
            * @type {Object}
            */
-          selectedItems: {
+          _selectedItems: {
             type: Object,
-            notify: true,
             observer: '_selectedItemsChanged'
           },
           /**
@@ -461,6 +460,14 @@
           lastSelectedItems: {
             type: Object,
             value: () => []
+          },
+          /**
+           * Casper-Select current option stringified
+           * @type {String}
+           */
+          value: {
+            type: String,
+            notify: true
           },
           /**
            * HTML Template for the items, with curly brackets for object value replacement
@@ -685,8 +692,8 @@
         if ( e.detail.value === false ) {
           this.opened = false;
           if ( !this.multiSelection && ( this.searchDynamic || this.searchInline ) ) {
-            this.lastSelectedItems = this.selectedItems;
-            if ( this.selectedItems !== undefined ) {
+            this.lastSelectedItems = this._selectedItems;
+            if ( this._selectedItems !== undefined ) {
               this._setValueInInput();
             } else {
               this._clearValueInput();
@@ -713,7 +720,7 @@
       _setValueInInput () {
         this._tempFiltering = this.filtering;
         this.filtering = false;
-        this.searchInput.value = this.selectedItems[this.itemColumn];
+        this.searchInput.value = this._selectedItems[this.itemColumn];
         this.searchInput.setAttribute('readonly', '');
       }
 
@@ -776,6 +783,7 @@
           }
         }
 
+        this._setValue();
         if ( !this.disabled ) {
           this.dispatchEvent(new CustomEvent('value-changed', { detail: { selectedItems: newSelectedItems } }));
         }
@@ -793,10 +801,10 @@
       _removeOptionFromList (event) {
         const clickedKey = event.target.parentNode.dataset.key;
 
-        for ( let [key, item] of Object.entries(this.selectedItems) ) {
+        for ( let [key, item] of Object.entries(this._selectedItems) ) {
           if ( item[this.keyColumn] == clickedKey ) {
-            this.selectedItems.splice(key, 1);
-            this.selectedItems = JSON.parse(JSON.stringify( this.selectedItems ));
+            this._selectedItems.splice(key, 1);
+            this._selectedItems = JSON.parse(JSON.stringify( this._selectedItems ));
             break;
           }
         }
@@ -831,33 +839,33 @@
           return;
         }
 
-        if ( !this.selectedItems || this.selectedItems.length === 0 ) {
-          this.selectedItems = [];
+        if ( !this._selectedItems || this._selectedItems.length === 0 ) {
+          this._selectedItems = [];
         }
 
         if ( this.multiSelection ) {
           if ( classList.contains("itemSelected") ) {
-            for ( let [key, item] of Object.entries(this.selectedItems) ) {
+            for ( let [key, item] of Object.entries(this._selectedItems) ) {
               if ( item[this.keyColumn] == e.model.item[this.keyColumn] ) {
-                this.selectedItems.splice(key, 1);
-                this.selectedItems = JSON.parse(JSON.stringify( this.selectedItems ));
+                this._selectedItems.splice(key, 1);
+                this._selectedItems = JSON.parse(JSON.stringify( this._selectedItems ));
                 return;
               }
             }
           } else {
-            if ( typeof this.selectedItems === "undefined" ) {
-              this.selectedItems = [];
+            if ( typeof this._selectedItems === "undefined" ) {
+              this._selectedItems = [];
             }
-            this.selectedItems.push(e.model.item);
-            this.selectedItems = JSON.parse(JSON.stringify( this.selectedItems ));
+            this._selectedItems.push(e.model.item);
+            this._selectedItems = JSON.parse(JSON.stringify( this._selectedItems ));
           }
         } else {
           if ( classList.contains("itemSelected") ) {
-            this.selectedItems = [];
+            this._selectedItems = [];
             this._selectedIndex = -1;
           } else {
             this._selectedIndex = e.model.index;
-            this.selectedItems = e.model.item;
+            this._selectedItems = e.model.item;
             if ( this.closeOnSelect ) {
               this.closeDropdown();
             }
@@ -906,7 +914,7 @@
           case 13: // enter
             this._closingKey = key == 13 ? 'enter' : (event.shiftKey === true ? 'shift+tab' : 'tab');
             if ( !this.multiSelection ) {
-              this.lastSelectedItems = this.selectedItems;
+              this.lastSelectedItems = this._selectedItems;
               if ( this.opened ) {
                 if ( this.closeOnSelect ) {
                   this.closeDropdown();
@@ -921,10 +929,10 @@
           case 27: // escape
             this._closingKey = 'esc';
             if ( !this.multiSelection ) {
-              this.selectedItems = this.lastSelectedItems;
+              this._selectedItems = this.lastSelectedItems;
               this.ironListSelectedItems = [];
-              this.ironListSelectedItems = this.selectedItems;
-              if ( this.selectedItems === undefined ) {
+              this.ironListSelectedItems = this._selectedItems;
+              if ( this._selectedItems === undefined ) {
                 this._clearValueInput();
               } else {
                 this._setValueInInput();
@@ -976,7 +984,7 @@
 
           this.$.itemsList.selectItem( this.$.itemsList.items[_selectedIndex] );
           this._selectedIndex = _selectedIndex;
-          this.selectedItems = this.$.itemsList.items[_selectedIndex];
+          this._selectedItems = this.$.itemsList.items[_selectedIndex];
           this.$.itemsList.scrollToIndex( indexScroll );
 
           if ( !this.opened ) {
@@ -1153,14 +1161,14 @@
       _disabledItemsChanged ( newDisabledItems ) {
         if ( newDisabledItems && newDisabledItems.length > 0 ) {
           if ( this.multiSelection ) {
-            if ( this.selectedItems !== undefined ) {
+            if ( this._selectedItems !== undefined ) {
               let selectedItems = [];
-              for ( let [key, item] of Object.entries(this.selectedItems) ) {
+              for ( let [key, item] of Object.entries(this._selectedItems) ) {
                 if ( !this.disabledItemsKeys.includes(item[this.keyColumn]) ) {
                   selectedItems.push(item);
                 }
               }
-              this.selectedItems = selectedItems;
+              this._selectedItems = selectedItems;
             }
             if ( this.lastSelectedItems !== undefined ) {
               let lastSelectedItems = [];
@@ -1172,9 +1180,9 @@
               this.lastSelectedItems = lastSelectedItems;
             }
           } else {
-            if ( this.selectedItems !== undefined ) {
-              if ( this.disabledItemsKeys.includes(this.selectedItems[this.keyColumn]) ) {
-                this.selectedItems = undefined;
+            if ( this._selectedItems !== undefined ) {
+              if ( this.disabledItemsKeys.includes(this._selectedItems[this.keyColumn]) ) {
+                this._selectedItems = undefined;
                 if ( !this.opened ) {
                   this._clearValueInput();
                 }
@@ -1207,6 +1215,8 @@
             this.searchInput.removeAttribute('disabled');
           }
         }
+
+        this._setValue();
       }
 
       _multiSelectionChanged ( newMultiSelectionValue, oldMultiSelectionValue ) {
@@ -1217,7 +1227,7 @@
           this.$.itemsList.removeAttribute('multi-selection');
           this.multiSelectionTags = false;
         }
-        this.selectedItems = [];
+        this._selectedItems = [];
         this.lastSelectedItems = [];
       }
 
@@ -1307,7 +1317,7 @@
           this._clearSearch();
           this.ironListSelectedItems = null;
           this.filteredItems = this.items;
-          this.selectedItems = [];
+          this._selectedItems = [];
         }
 
         if ( options !== undefined ) {
@@ -1441,7 +1451,7 @@
           for ( let [key, item] of Object.entries(this.filteredItems) ) {
             if ( this.initialId == item[this.keyColumn] ) {
               this.$.itemsList.selectItem( this.$.itemsList.items[key] );
-              this.selectedItems = this.lastSelectedItems = JSON.parse(JSON.stringify( this.ironListSelectedItems ));
+              this._selectedItems = this.lastSelectedItems = JSON.parse(JSON.stringify( this.ironListSelectedItems ));
               this.initialId = undefined;
               this._setValueInInput();
               break;
@@ -1472,14 +1482,14 @@
       }
 
       _selectItems () {
-        if ( this.filteredItems && this.filteredItems.length > 0 && this.selectedItems && ( !this.multiSelection || this.selectedItems.length > 0 )) {
+        if ( this.filteredItems && this.filteredItems.length > 0 && this._selectedItems && ( !this.multiSelection || this._selectedItems.length > 0 )) {
           for ( let [key, item] of Object.entries(this.filteredItems) ) {
             if ( !this.multiSelection ) {
-              if ( this.selectedItems[this.keyColumn] == item[this.keyColumn] ) {
+              if ( this._selectedItems[this.keyColumn] == item[this.keyColumn] ) {
                 this.$.itemsList.selectItem( this.$.itemsList.items[key] );
               }
             } else {
-              for ( let selItem of this.selectedItems ) {
+              for ( let selItem of this._selectedItems ) {
                 if ( selItem[this.keyColumn] == item[this.keyColumn] ) {
                   this.$.itemsList.selectItem( this.$.itemsList.items[key] );
                 }
@@ -1489,20 +1499,20 @@
         }
       }
 
-      get value() {
+      _setValue () {
         if ( this.disabled ) {
-          return null;
+          this.value = '';
         } else {
           if ( this.multiSelection ) {
-            return this.selectedItems.map(item => item[this.keyColumn]).join(this.multiSelectionValueSeperator);
+            this.value = this._selectedItems.map(item => item[this.keyColumn]).join(this.multiSelectionValueSeperator);
           } else {
-            return this.selectedItems[this.keyColumn];
+            this.value = this._selectedItems ? this._selectedItems[this.keyColumn] : '';
           }
         }
       }
 
-      get selected() {
-        return this.disabled ? null : this.selectedItems;
+      get selectedItems () {
+        return this.disabled ? null : this._selectedItems;
       }
 
       _highlightTemplate () {
