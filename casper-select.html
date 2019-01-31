@@ -1496,7 +1496,7 @@
           if ( this.multiSelection ) {
             return this.selectedItems.map(item => item[this.keyColumn]).join(this.multiSelectionValueSeperator);
           } else {
-            return this.selectedItems[0][this.keyColumn];
+            return this.selectedItems[this.keyColumn];
           }
         }
       }
