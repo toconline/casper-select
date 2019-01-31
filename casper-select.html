@@ -363,6 +363,14 @@
             value: 'id'
           },
           /**
+           * Multi Selection Key Values Seperator
+           * @type {Object}
+           */
+          multiSelectionValueSeperator: {
+            type: String,
+            value: ','
+          },
+          /**
            * Initial ID to be compared to "keyColumn" for initial selection
            * @type {Object}
            */
@@ -767,7 +775,10 @@
             this.$.dropdown.refit();
           }
         }
-        this.dispatchEvent(new CustomEvent('value-changed', { detail: { selectedItems: newSelectedItems } }));
+
+        if ( !this.disabled ) {
+          this.dispatchEvent(new CustomEvent('value-changed', { detail: { selectedItems: newSelectedItems } }));
+        }
       }
 
       _removeDynamicListSelectedValues( list ) {
@@ -1478,7 +1489,19 @@
         }
       }
 
-      value () {
+      get value() {
+        if ( this.disabled ) {
+          return null;
+        } else {
+          if ( this.multiSelection ) {
+            return this.selectedItems.map(item => item[this.keyColumn]).join(this.multiSelectionValueSeperator);
+          } else {
+            return this.selectedItems[0][this.keyColumn];
+          }
+        }
+      }
+
+      get selected() {
         return this.disabled ? null : this.selectedItems;
       }
 
