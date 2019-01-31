@@ -1042,7 +1042,14 @@
       }
 
       _itemsChanged ( newItems ) {
-        if ( this.template && newItems.length > 0 ) {
+        if ( newItems.length > 0 && newItems[0].constructor === String) {
+          let itemsConvertedToObject = [];
+          newItems.forEach( (element, index) => itemsConvertedToObject.push({id: index, name: element}));
+          // The following object change will trigger the observer again, so we do an early return
+          this.items = itemsConvertedToObject;
+          return;
+        }
+        if ( this.template && this.items.length > 0 ) {
           let found = [], rxp = /\{([^}]+)\}/g, curMatch;
           while ( (curMatch = rxp.exec( this.template )) ) {
             found.push( curMatch[1] );
@@ -1064,7 +1071,7 @@
           this.filteredItems = this.items;
         }
 
-        if ( newItems.length > 0 ) {
+        if ( this.items.length > 0 ) {
           this.filterItems(undefined, true);
           Polymer.RenderStatus.afterNextRender(this.searchInput, () => {
             this._resizeItemListHeight();
