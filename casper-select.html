@@ -1061,51 +1061,53 @@
       }
 
       _itemsChanged ( newItems ) {
-        if ( newItems && newItems.length > 0 && newItems[0].constructor === String) {
-          let itemsConvertedToObject = [];
-          newItems.forEach( (element, index) => itemsConvertedToObject.push({id: index, name: element}));
-          // The following object change will trigger the observer again, so we do an early return
-          this.items = itemsConvertedToObject;
-          return;
-        }
-        if ( this.template && this.items.length > 0 ) {
-          let found = [], rxp = /\{([^}]+)\}/g, curMatch;
-          while ( (curMatch = rxp.exec( this.template )) ) {
-            found.push( curMatch[1] );
+        if ( newItems ) {
+          if ( newItems.length > 0 && newItems[0].constructor === String) {
+            let itemsConvertedToObject = [];
+            newItems.forEach( (element, index) => itemsConvertedToObject.push({id: index, name: element}));
+            // The following object change will trigger the observer again, so we do an early return
+            this.items = itemsConvertedToObject;
+            return;
           }
-          this._templateToReplace = found;
-        }
+          if ( this.template && this.items.length > 0 ) {
+            let found = [], rxp = /\{([^}]+)\}/g, curMatch;
+            while ( (curMatch = rxp.exec( this.template )) ) {
+              found.push( curMatch[1] );
+            }
+            this._templateToReplace = found;
+          }
 
-        for ( let [key, item] of Object.entries(this.items) ) {
-          if ( this.template && this._templateToReplace !== undefined ) {
-            let mapping = {};
-            this._templateToReplace.forEach(e => mapping[`{${e}}`] = item[e]);
-            item._csHTML = this.template.replace(/\{\w+\}/ig, n => mapping[n]);
-          } else {
-            item._csHTML = item[this.itemColumn];
+          for ( let [key, item] of Object.entries(this.items) ) {
+            if ( this.template && this._templateToReplace !== undefined ) {
+              let mapping = {};
+              this._templateToReplace.forEach(e => mapping[`{${e}}`] = item[e]);
+              item._csHTML = this.template.replace(/\{\w+\}/ig, n => mapping[n]);
+            } else {
+              item._csHTML = item[this.itemColumn];
+            }
+            this.items[key] = item;
           }
-          this.items[key] = item;
-        }
-        if ( !this.filtering ) {
-          this.filteredItems = this.items;
-        }
+          if ( !this.filtering ) {
+            this.filteredItems = this.items;
+          }
 
-        if ( this.items.length > 0 ) {
-          this.filterItems(undefined, true);
-          Polymer.RenderStatus.afterNextRender(this.searchInput, () => {
-            this._resizeItemListHeight();
-            this._resizeItemListWidth();
-          });
-          if ( typeof this._ignoreDisabledItems === "undefined" || this._ignoreDisabledItems === false ) {
-            const currentDisabledItemsKeys = this.disabledItemsKeys;
-            this.disabledItems = this.disabledItemsKeys = [];
-            this.disableItems( currentDisabledItemsKeys );
-          }
-        } else {
-          if ( typeof this._ignoreDisabledItems === "undefined" || this._ignoreDisabledItems === false ) {
+          if ( this.items.length > 0 ) {
+            this.filterItems(undefined, true);
             Polymer.RenderStatus.afterNextRender(this.searchInput, () => {
-              this._unsetValueInInput();
+              this._resizeItemListHeight();
+              this._resizeItemListWidth();
             });
+            if ( typeof this._ignoreDisabledItems === "undefined" || this._ignoreDisabledItems === false ) {
+              const currentDisabledItemsKeys = this.disabledItemsKeys;
+              this.disabledItems = this.disabledItemsKeys = [];
+              this.disableItems( currentDisabledItemsKeys );
+            }
+          } else {
+            if ( typeof this._ignoreDisabledItems === "undefined" || this._ignoreDisabledItems === false ) {
+              Polymer.RenderStatus.afterNextRender(this.searchInput, () => {
+                this._unsetValueInInput();
+              });
+            }
           }
         }
       }
