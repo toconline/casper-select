@@ -1061,7 +1061,7 @@
       }
 
       _itemsChanged ( newItems ) {
-        if ( newItems.length > 0 && newItems[0].constructor === String) {
+        if ( newItems && newItems.length > 0 && newItems[0].constructor === String) {
           let itemsConvertedToObject = [];
           newItems.forEach( (element, index) => itemsConvertedToObject.push({id: index, name: element}));
           // The following object change will trigger the observer again, so we do an early return
@@ -1156,6 +1156,18 @@
           this._ignoreDisabledItems = false;
           this.filterItems();
         }
+      }
+
+      deselectAllItems () {
+        this._clearValueInput();
+        this._tempItems = this.items;
+        this.items = [];
+
+        this._selectedItems = [];
+        this.lastSelectedItems = [];
+        this.ironListSelectedItems = [];
+        this.items = this._tempItems;
+        this._tempItems = undefined;
       }
 
       _disabledItemsChanged ( newDisabledItems ) {
@@ -1504,7 +1516,7 @@
           this.value = '';
         } else {
           if ( this.multiSelection ) {
-            this.value = this._selectedItems.map(item => item[this.keyColumn]).join(this.multiSelectionValueSeperator);
+            this.value = this._selectedItems ? this._selectedItems.map(item => item[this.keyColumn]).join(this.multiSelectionValueSeperator) : '';
           } else {
             this.value = this._selectedItems ? this._selectedItems[this.keyColumn] : '';
           }
