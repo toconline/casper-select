@@ -268,12 +268,14 @@
     <template is="dom-if" if="[[ searchDynamic ]]">
       <ul id="dynamicListWithInput" class$="[[ multiSelectionTagsClass ]] [[ _computedDisabledSelect(disabled) ]]">
         <li class="input">
-          <paper-input id="searchSelf"
-            class$="paper-input [[ multiSelectionTagsClass ]]"
-            no-label-float="[[ noLabelFloat ]]"
+          <paper-input
+            id="searchSelf"
             label="[[ label ]]"
-            on-tap="selfInputClicked">
+            on-tap="selfInputClicked"
+            no-label-float="[[ noLabelFloat ]]"
+            class$="paper-input [[ multiSelectionTagsClass ]]">
             <template is="dom-if" if="[[!multiSelection]]">
+              <iron-icon icon="casper-icons:clear" slot="suffix" on-click="_clearSelectIconClicked"></iron-icon>
               <iron-icon icon="casper-icons:arrow-drop-down" slot="suffix"></iron-icon>
             </template>
           </paper-input>
@@ -1554,6 +1556,13 @@
           }
         });
         return result;
+      }
+
+      _clearSelectIconClicked (event) {
+        event.stopImmediatePropagation();
+
+        this.deselectAllItems();
+        if (this.searchInput) this.searchInput.blur();
       }
 
     }
