@@ -720,7 +720,7 @@
       }
 
       _setValueInInput () {
-        this._tempFiltering = this.filtering;
+        this._tempFiltering = this._tempFiltering || this.filtering;
         this.filtering = false;
         this.searchInput.value = this._selectedItems[this.itemColumn];
         this.searchInput.setAttribute('readonly', '');
@@ -732,6 +732,7 @@
         this._resizeItemListHeight();
         if ( typeof this._tempFiltering !== "undefined" ) {
           this.filtering = this._tempFiltering;
+          this._tempFiltering = undefined;
         }
       }
 
@@ -892,8 +893,10 @@
         }
 
         let key = event.keyCode || event.which;
-        if (key == 13)
+        // tab, enter, esc -- just in case
+        if ([9, 13, 27].includes(key)) {
           return;
+        }
 
         let nextLetter = String.fromCharCode(key);
         if (nextLetter.length > 0) {
@@ -918,6 +921,11 @@
             if ( !this.multiSelection ) {
               this.lastSelectedItems = this._selectedItems;
               if ( this.opened ) {
+
+                if ( this.$.itemsList.length == 1 ) {
+                  this._selectedItems = this.lastSelectedItems = this.$.itemsList.items[0];
+                }
+
                 if ( this.closeOnSelect ) {
                   this.closeDropdown();
                 }
@@ -1342,7 +1350,6 @@
 
         this._setPositionTarget(element);
         this._resizeItemListHeight();
-
         this.openDropdown();
 
         Polymer.RenderStatus.afterNextRender(this.searchInput, () => {
@@ -1472,6 +1479,7 @@
             }
           }
         }
+        this.$.dropdown.notifyResize();
       }
 
       _resizeItemListWidth () {
@@ -1493,6 +1501,7 @@
         } else if ( this.targetElement ) {
           this.$.dropdown.style.width = this.targetElement.offsetWidth + 'px';
         }
+        this.$.dropdown.notifyResize();
       }
 
       _selectItems () {
