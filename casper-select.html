@@ -18,10 +18,9 @@
   -
 -->
 <link rel="import" href="../polymer/polymer-element.html">
-<link rel="import" href="../iron-fit-behavior/iron-fit-behavior.html">
-<link rel="import" href="../iron-overlay-behavior/iron-overlay-behavior.html">
 <link rel="import" href="../paper-input/paper-input.html">
 <link rel="import" href="../casper-icons/casper-icons.html">
+<link rel="import" href="../iron-overlay-behavior/iron-overlay-behavior.html">
 <link rel="import" href="casper-select-dropdown.html">
 
 <dom-module id="casper-select">
@@ -39,7 +38,7 @@
         background-color: white;
         display: flex;
         flex-direction: column;
-        max-height: 99vh;
+        max-height: 99vh !important;
         box-shadow: rgba(25, 59, 103, 0.05) 0px 0px 0px 1px,
                     rgba(28, 55, 90, 0.16) 0px 2px 6px -1px,
                     rgba(28, 50, 79, 0.38) 0px 8px 24px -4px;
@@ -67,10 +66,7 @@
       }
 
       .listItem {
-        margin: 0;
-        overflow: hidden;
-        line-height: 20px;
-        white-space: nowrap;
+        min-height: 27px;
         padding: 3px 7px 4px;
         box-sizing: border-box;
         background-color: white;
@@ -96,16 +92,8 @@
         @apply --casper-select-listItem-selected;
       }
 
-      .listItem::before {
-        width: 15px;
-        content: "";
-        margin-right: 5px;
-        text-align: center;
-        display: inline-block;
-      }
-
-      .listItem.itemSelected::before {
-        content: "\2714";
+      .listItem.itemSelected iron-icon {
+        height: 15px;
       }
 
       .listItem.itemSelected:hover {
@@ -198,8 +186,12 @@
       }
 
       #dynamicListWithInput.multiSelectionWithTags {
-        padding: 5px;
-        border: 1px solid #e4e4e4;
+        padding-top: 28px;
+        border-bottom: 1px solid #737373;
+      }
+
+      #dynamicListWithInput.multiSelectionWithTags.listDisabled {
+        border-bottom: 1px dashed #E4E4E4;
       }
 
       #dynamicListWithInput.multiSelectionWithTags li {
@@ -263,6 +255,21 @@
           display: none;
         };
       }
+
+      .icons {
+        display: flex;
+      }
+
+      .icons iron-icon {
+        width: 15px;
+        height: 15px;
+        transition: color 200ms linear;
+      }
+
+      .icons iron-icon:hover {
+        color: black;
+        cursor: pointer;
+      }
     </style>
 
     <template is="dom-if" if="[[ searchDynamic ]]">
@@ -271,35 +278,48 @@
           <paper-input
             id="searchSelf"
             label="[[ label ]]"
+            disabled="[[disabled]]"
             on-tap="selfInputClicked"
             no-label-float="[[ noLabelFloat ]]"
             class$="paper-input [[ multiSelectionTagsClass ]]">
             <template is="dom-if" if="[[!multiSelection]]">
-              <iron-icon icon="casper-icons:clear" slot="suffix" on-click="_clearSelectIconClicked"></iron-icon>
-              <iron-icon icon="casper-icons:arrow-drop-down" slot="suffix"></iron-icon>
+              <div class="icons" slot="suffix">
+                <!--Only display the first icon if there are selected items-->
+                <template is="dom-if" if="[[_anySelectedItems(_selectedItems)]]">
+                  <iron-icon icon="casper-icons:clear" on-click="_clearSelectIconClicked"></iron-icon>
+                </template>
+                <iron-icon icon="casper-icons:arrow-drop-down"></iron-icon>
+              </div>
             </template>
           </paper-input>
         </li>
       </ul>
     </template>
-    <casper-select-dropdown id="dropdown" no-overlap dynamic-align horizontal-align="auto" vertical-align="auto" no-cancel-on-esc-key>
+
+    <casper-select-dropdown
+      id="dropdown"
+      no-overlap
+      dynamic-align
+      no-cancel-on-esc-key
+      vertical-align="auto"
+      horizontal-align="auto">
       <slot name="search"></slot>
       <template is="dom-if" if="[[ searchCombo ]]">
         <paper-input tabindex="1" id="searchInput" class="paper-input" no-label-float label="pesquisar..">
-          <iron-icon class="iron-icon" icon="casper-icons:search" slot="prefix"></iron-icon>
-          <iron-icon id="suffixIcon" class="iron-icon" icon="casper-icons:clear" slot="suffix" alt="limpar" title="limpar"></iron-icon>
+          <iron-icon class="iron-icon" icon="casper-icons:search"></iron-icon>
+          <iron-icon id="suffixIcon" class="iron-icon" icon="casper-icons:clear" alt="limpar" title="limpar"></iron-icon>
         </paper-input>
       </template>
       <div id="listScroller">
-        <iron-list id="itemsList"
-          class$="[[ _computedDisabledSelect(disabled) ]]"
+        <iron-list
+          id="itemsList"
           scroll-target="listScroller"
           items="[[ filteredItems ]]"
-          selected-items="{{ ironListSelectedItems }}">
+          selected-items="{{ ironListSelectedItems }}"
+          class$="[[ _computedDisabledSelect(disabled) ]]">
           <template>
             <div on-tap="_itemClicked">
               <div class$="listItem [[ _computedItemSelectedClass(selected, index) ]] [[ _computedItemDisabledClass(item.csDisabled) ]]"
-                style$="[[ listItemHeightStyle ]]"
                 inner-h-t-m-l="[[ _computedItemHtml(item._csHTML) ]]">
               </div>
             </div>
@@ -487,14 +507,6 @@
             observer: '_templateStyleChanged'
           },
           /**
-           * Template height per item in px
-           * @type {Number}
-           */
-          listItemHeight: {
-            type: Number,
-            value: 27
-          },
-          /**
            * Template width per item in px
            * List Width = This value * Longest Item String
            * @type {Number}
@@ -502,14 +514,6 @@
           listItemWidth: {
             type: Number,
             value: 20
-          },
-          /**
-           * Template style override to enforce height - COMPUTED
-           * @type {String}
-           */
-          listItemHeightStyle: {
-            type: String,
-            computed: '_listItemHeightDefined(listItemHeight)'
           },
           /**
            * Disable the entire select
@@ -922,7 +926,7 @@
               this.lastSelectedItems = this._selectedItems;
               if ( this.opened ) {
 
-                if ( this.$.itemsList.length == 1 ) {
+                if ( this.$.itemsList.items.length === 1 ) {
                   this._selectedItems = this.lastSelectedItems = this.$.itemsList.items[0];
                 }
 
@@ -1087,6 +1091,7 @@
         }
 
         for ( let [key, item] of Object.entries(this.items) ) {
+
           if ( this.template && this._templateToReplace !== undefined ) {
             let mapping = {};
             this._templateToReplace.forEach(e => mapping[`{${e}}`] = item[e]);
@@ -1282,10 +1287,6 @@
         return multiSelectionTags ? 'multiSelectionWithTags' : '';
       }
 
-      _listItemHeightDefined ( listItemHeight ) {
-        return "height:" + listItemHeight + "px;";
-      }
-
       _computedDisabledSelect ( disabled ) {
         return disabled ? 'listDisabled' : '';
       }
@@ -1465,8 +1466,6 @@
         let items = useFiltered ? this.filteredItems : this.items;
         if ( this.listHeight != undefined ) {
           this.$.itemsList.style.height = this.listHeight;
-        } else {
-          this.$.itemsList.style.height = (Object.keys(items).length * this.listItemHeight) + 'px';
         }
         if ( this.searchInput && this.initialId != undefined && !this.multiSelection && this.filteredItems && this.filteredItems.length > 0 ) {
           for ( let [key, item] of Object.entries(this.filteredItems) ) {
@@ -1567,6 +1566,11 @@
         return result;
       }
 
+      /**
+       * Deselects all currently selected items when the user clicks the
+       * clear icon.
+       * @param {Object} event - The event that was triggered.
+       */
       _clearSelectIconClicked (event) {
         event.stopImmediatePropagation();
 
@@ -1574,6 +1578,16 @@
         if (this.searchInput) this.searchInput.blur();
       }
 
+      /**
+       * Checks if there is at least one item selected to hide / display
+       * the clear icon on the dropdown.
+       * @param {Object|Array} selectedItems - The currently selected item(s).
+       */
+      _anySelectedItems (selectedItems) {
+        return this.multiSelection
+          ? selectedItems.length > 0
+          : Object.entries(selectedItems).length > 0;
+      }
     }
 
   window.customElements.define(CasperSelect.is, CasperSelect);
