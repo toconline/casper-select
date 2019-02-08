@@ -303,17 +303,15 @@
             on-tap="selfInputClicked"
             no-label-float="[[noLabelFloat]]"
             class$="paper-input [[ multiSelectionTagsClass ]]">
-
             <template is="dom-if" if="[[!multiSelection]]">
               <div class="icons" slot="suffix">
                 <!--Only display the first icon if there are selected items-->
-                <template is="dom-if" if="[[_anySelectedItems(_selectedItems)]]">
+                <template is="dom-if" if="[[_shouldDisplayClearIcon(_selectedItems)]]">
                   <iron-icon icon="casper-icons:clear" on-click="_clearSelectIconClicked"></iron-icon>
                 </template>
                 <iron-icon icon="casper-icons:arrow-drop-down"></iron-icon>
               </div>
             </template>
-
           </paper-input>
         </li>
       </ul>
@@ -784,7 +782,7 @@
             }
             this._setMultiSelectionTarget();
             this._unbindSearchInputListeners();
-            this.searchInput = this.targetElement;
+            this.searchInput = this.shadowRoot.querySelector('#searchSelf');
             this._bindSearchInputListeners();
           });
         }
@@ -953,10 +951,17 @@
         let key = event.keyCode;
         switch (key) {
           case 8: // backspace
-            if ( this.multiSelection && this._selectedItems && this._selectedItems.length > 0 ) {
-              const lastSelectedItemInList = this._selectedItems[this._selectedItems.length - 1];
+            if ( this.multiSelection
+              && this._selectedItems
+              && this._selectedItems.length > 0
+              && this.searchInput.value.length === 0) {
+              const lastKeySelectedItemInList = this._selectedItems[this._selectedItems.length - 1][this.keyColumn];
+              this.lastSelectedItems = this.lastSelectedItems.filter(item => item[this.keyColumn] !== lastKeySelectedItemInList);
+
+              this._selectedItems.splice(-1);
+              this._selectedItems = JSON.parse(JSON.stringify( this._selectedItems ));
               for ( let [key, item] of Object.entries(this.ironListSelectedItems) ) {
-                if ( item[this.keyColumn] == lastSelectedItemInList[this.keyColumn] ) {
+                if ( item[this.keyColumn] == lastKeySelectedItemInList ) {
                   this.$.itemsList.deselectItem( item );
                   break;
                 }
@@ -983,6 +988,13 @@
                   this.searchInput.blur();
                 }
               }
+            } else {
+              if ( this.opened ) {
+                if ( this.$.itemsList.items.length === 1 && !this._selectedItems.find(item => item[this.keyColumn] === this.$.itemsList.items[0][this.keyColumn])) {
+                  this._selectedItems = [...this._selectedItems, this.$.itemsList.items[0]];
+                  this.lastSelectedItems = [...this.lastSelectedItems, this.$.itemsList.items[0]];
+                }
+              }
             }
             break;
           case 27: // escape
@@ -1004,6 +1016,8 @@
                 this.searchInput.blur();
               }
             }
+
+
             break;
           case 37: // left
             if ( this._doesntExistYet ) {
@@ -1431,7 +1445,7 @@
 
         query = query || (this.searchInput ? this.searchInput.value : '');
         if ( query === this._lastQuery ) {
-            return;
+          return;
         }
 
         this._lastQuery = query;
@@ -1644,10 +1658,10 @@
        * the clear icon on the dropdown.
        * @param {Object|Array} selectedItems - The currently selected item(s).
        */
-      _anySelectedItems (selectedItems) {
-        return this.multiSelection
-          ? selectedItems.length > 0
-          : Object.entries(selectedItems).length > 0;
+      _shouldDisplayClearIcon (selectedItems) {
+        return !this.multiSelection
+          && selectedItems
+          && Object.entries(selectedItems).length > 0;
       }
 
       _inputLabel () {
