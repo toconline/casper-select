@@ -134,18 +134,20 @@
       }
 
       #dynamicListWithInput li:not(.input) {
-        padding: 0 5px;
-        margin: 0 4px 4px 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        line-height: 13px;
         color: #333;
-        cursor: default;
-        border: 1px solid #6F6262;
-        border-radius: 3px;
-        user-select: none;
+        height: 20px;
+        display: flex;
         outline: none;
+        padding: 0 5px;
+        font-size: 12px;
+        cursor: default;
+        user-select: none;
+        line-height: 12px;
+        border-radius: 3px;
+        align-items: center;
+        margin: 0 4px 4px 0;
+        justify-content: center;
+        border: 1px solid #6F6262;
       }
 
       #dynamicListWithInput.listDisabled li:not(.input) {
@@ -153,40 +155,40 @@
         border: 1px solid #ACACAC;
       }
 
-      #dynamicListWithInput.listDisabled li:not(.input) button[data-key] {
-        display: none;
-      }
-
       #dynamicListWithInput li:not(.input) button {
         padding: 0;
+        width: 10px;
+        height: 10px;
         color: white;
-        width: 15px;
-        height: 15px;
         border: none;
+        display: flex;
         outline: none;
+        font-size: 12px;
         cursor: pointer;
         background: none;
         margin-right: 5px;
         user-select: none;
-        display: flex;
+        border-radius: 50%;
         align-items: center;
         flex-direction: column;
         justify-content: center;
         background-color: #9E9E9E;
-        border-radius: 50%;
+      }
+
+      #dynamicListWithInput li:not(.input) button iron-icon {
+        width: 80%;
+        height: 80%;
       }
 
       #dynamicListWithInput li:not(.input) button:hover {
         background-color: #686868;
       }
 
-      #dynamicListWithInput li:not(.input) button iron-icon {
-        width: 100%;
-        height: 100%;
+      #dynamicListWithInput.listDisabled li:not(.input) button {
+        display: none;
       }
 
       #dynamicListWithInput.multiSelectionWithTags {
-        padding-top: 28px;
         border-bottom: 1px solid #737373;
       }
 
@@ -194,11 +196,8 @@
         border-bottom: 1px dashed #E4E4E4;
       }
 
-      #dynamicListWithInput.multiSelectionWithTags li {
-        height: 25px;
-      }
-
-      #dynamicListWithInput li:last-child {
+      #dynamicListWithInput li.input {
+        width: 0;
         flex-grow: 1;
       }
 
@@ -270,18 +269,38 @@
         color: black;
         cursor: pointer;
       }
+
+      /* Used this hard-coded values to mimic the floating label of the paper-input */
+      .multi-selection-label {
+        height: 18px;
+        display: flex;
+        color: #737373;
+        padding-top: 9px;
+        flex-direction: column;
+        @apply --paper-font-caption;
+      }
+
+      .multi-selection-label.listDisabled {
+        color: #E4E4E4;
+      }
     </style>
 
     <template is="dom-if" if="[[ searchDynamic ]]">
+      <!--Floating label to mimic the paper-input styling-->
+      <template is="dom-if" if="[[multiSelection]]">
+        <label class$="multi-selection-label [[_computedDisabledSelect(disabled)]]">[[label]]</label>
+      </template>
+
       <ul id="dynamicListWithInput" class$="[[ multiSelectionTagsClass ]] [[ _computedDisabledSelect(disabled) ]]">
         <li class="input">
           <paper-input
             id="searchSelf"
-            label="[[ label ]]"
             disabled="[[disabled]]"
+            label="[[_inputLabel()]]"
             on-tap="selfInputClicked"
-            no-label-float="[[ noLabelFloat ]]"
+            no-label-float="[[noLabelFloat]]"
             class$="paper-input [[ multiSelectionTagsClass ]]">
+
             <template is="dom-if" if="[[!multiSelection]]">
               <div class="icons" slot="suffix">
                 <!--Only display the first icon if there are selected items-->
@@ -291,6 +310,7 @@
                 <iron-icon icon="casper-icons:arrow-drop-down"></iron-icon>
               </div>
             </template>
+
           </paper-input>
         </li>
       </ul>
@@ -1467,16 +1487,23 @@
         if ( this.listHeight != undefined ) {
           this.$.itemsList.style.height = this.listHeight;
         }
-        if ( this.searchInput && this.initialId != undefined && !this.multiSelection && this.filteredItems && this.filteredItems.length > 0 ) {
+        if ( this.searchInput && this.initialId !== undefined && this.filteredItems && this.filteredItems.length > 0 ) {
           for ( let [key, item] of Object.entries(this.filteredItems) ) {
-            if ( this.initialId == item[this.keyColumn] ) {
-              this.$.itemsList.selectItem( this.$.itemsList.items[key] );
-              this._selectedItems = this.lastSelectedItems = JSON.parse(JSON.stringify( this.ironListSelectedItems ));
-              this.initialId = undefined;
-              this._setValueInInput();
-              break;
-            }
+
+            // Convert the initial id into an array to avoid code complexity on single selection.
+            const initialIds = this.initialId.constructor === Array ? this.initialId : [this.initialId];
+
+            initialIds.forEach(initialId => {
+              if (initialId.toString() === item[this.keyColumn].toString()) {
+                this.$.itemsList.selectItem( this.$.itemsList.items[key] );
+                this._selectedItems = this.lastSelectedItems = JSON.parse(JSON.stringify( this.ironListSelectedItems ));
+                this._setValueInInput();
+              }
+            });
           }
+
+          // Destroy the initial id to not run this code section in future resizes.
+          this.initialId = undefined;
         }
         this.$.dropdown.notifyResize();
       }
@@ -1587,6 +1614,10 @@
         return this.multiSelection
           ? selectedItems.length > 0
           : Object.entries(selectedItems).length > 0;
+      }
+
+      _inputLabel () {
+        return this.multiSelection ? '' : this.label;
       }
     }
 
