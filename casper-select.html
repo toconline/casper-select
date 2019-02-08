@@ -66,11 +66,14 @@
       }
 
       .listItem {
+        display: flex;
         min-height: 27px;
-        padding: 3px 7px 4px;
+        align-items: center;
+        padding: 4px 7px;
         box-sizing: border-box;
         background-color: white;
         @apply --casper-select-listItem;
+
       }
 
       .listItem:not(.itemDisabled):hover {
