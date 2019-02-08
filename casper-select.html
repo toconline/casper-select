@@ -397,6 +397,15 @@
             value: 'name'
           },
           /**
+           * Short Item Column used for multi-selection -> default: "shortName"
+           * If not present will fallback to itemColumn.
+           * @type {String}
+           */
+          shortItemColumn: {
+            type: String,
+            value: 'shortName'
+          },
+          /**
            * Key Column -> default: "id"
            * @type {String}
            */
@@ -795,7 +804,8 @@
                 liButton.appendChild(liButtonIcon);
                 liButton.dataset.key = el[this.keyColumn];
                 liButton.addEventListener('click', this._removeOptionFromList.bind(this));
-                liSpan.innerHTML = el[this.itemColumn];
+                liSpan.innerHTML = el[this.shortItemColumn] === undefined ? el[this.itemColumn] : el[this.shortItemColumn];
+
                 li.appendChild(liButton);
                 li.appendChild(liSpan);
                 list.insertBefore(li, list.lastElementChild);
@@ -1479,7 +1489,6 @@
         } catch (e) {
           // Sometimes the #suffixIcon might not exist.
         }
-
       }
 
       _resizeItemListHeight (useFiltered = true) {
@@ -1487,25 +1496,35 @@
         if ( this.listHeight != undefined ) {
           this.$.itemsList.style.height = this.listHeight;
         }
-        if ( this.searchInput && this.initialId !== undefined && this.filteredItems && this.filteredItems.length > 0 ) {
-          for ( let [key, item] of Object.entries(this.filteredItems) ) {
 
+        if (this.searchInput
+            && !this._alreadyInitialized
+            && this.initialId !== undefined
+            && this.filteredItems
+            && this.filteredItems.length > 0) {
+
+          const initialIds = this.initialId.constructor === Array ? this.initialId : [this.initialId];
+          let foundInitialIds = 0;
+
+          for ( let [key, item] of Object.entries(this.items) ) {
             // Convert the initial id into an array to avoid code complexity on single selection.
-            const initialIds = this.initialId.constructor === Array ? this.initialId : [this.initialId];
-
             initialIds.forEach(initialId => {
               if (initialId.toString() === item[this.keyColumn].toString()) {
                 this.$.itemsList.selectItem( this.$.itemsList.items[key] );
-                this._selectedItems = this.lastSelectedItems = JSON.parse(JSON.stringify( this.ironListSelectedItems ));
-                this._setValueInInput();
+                foundInitialIds++;
               }
             });
+
+            if (foundInitialIds >= initialIds.length) break;
           }
 
           // Destroy the initial id to not run this code section in future resizes.
-          this.initialId = undefined;
+          this._alreadyInitialized = true;
+          this._selectedItems = this.lastSelectedItems = JSON.parse(JSON.stringify( this.ironListSelectedItems ));
+
+          // Only set the value in the search input for single-selection.
+          if (!this.multiSelection) this._setValueInInput();
         }
-        this.$.dropdown.notifyResize();
       }
 
       _resizeItemListWidth () {
