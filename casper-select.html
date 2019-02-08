@@ -628,7 +628,7 @@
             observer: '_searchDynamicChanged'
           },
           /**
-           * If we are not in "multiSelcetion" mode, will automatically close dropdown on select
+           * If we are not in "multiSelection" mode, will automatically close dropdown on select
            * @type {Boolean}
            */
           closeOnSelect: {
@@ -929,7 +929,7 @@
           return;
         }
 
-        let key = event.keyCode || event.which;
+        let key = event.keyCode
         // tab, enter, esc -- just in case
         if ([9, 13, 27].includes(key)) {
           return;
@@ -950,8 +950,20 @@
       }
 
       _searchInputKeyDownHandler (event) {
-        let key = event.keyCode || event.which;
+        let key = event.keyCode;
         switch (key) {
+          case 8: // backspace
+            if ( this.multiSelection && this._selectedItems && this._selectedItems.length > 0 ) {
+              const lastSelectedItemInList = this._selectedItems[this._selectedItems.length - 1];
+              for ( let [key, item] of Object.entries(this.ironListSelectedItems) ) {
+                if ( item[this.keyColumn] == lastSelectedItemInList[this.keyColumn] ) {
+                  this.$.itemsList.deselectItem( item );
+                  break;
+                }
+              }
+              this.$.dropdown.refit();
+            }
+            break;
           case  9: // tab
           case 13: // enter
             this._closingKey = key == 13 ? 'enter' : (event.shiftKey === true ? 'shift+tab' : 'tab');
@@ -1506,11 +1518,11 @@
             && this.filteredItems
             && this.filteredItems.length > 0) {
 
+          // Convert the initial id into an array to avoid code complexity on single selection.
           const initialIds = this.initialId.constructor === Array ? this.initialId : [this.initialId];
           let foundInitialIds = 0;
 
           for ( let [key, item] of Object.entries(this.items) ) {
-            // Convert the initial id into an array to avoid code complexity on single selection.
             initialIds.forEach(initialId => {
               if (initialId.toString() === item[this.keyColumn].toString()) {
                 this.$.itemsList.selectItem( this.$.itemsList.items[key] );
@@ -1521,7 +1533,7 @@
             if (foundInitialIds >= initialIds.length) break;
           }
 
-          // Destroy the initial id to not run this code section in future resizes.
+          // Mark this flag to not run this code section in the future
           this._alreadyInitialized = true;
           this._selectedItems = this.lastSelectedItems = JSON.parse(JSON.stringify( this.ironListSelectedItems ));
 
