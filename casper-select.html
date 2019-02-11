@@ -764,6 +764,8 @@
       }
 
       _setValueInInput () {
+        if (!this._selectedItems) return;
+
         this._tempFiltering = this._tempFiltering || this.filtering;
         this.filtering = false;
         this.searchInput.value = this._selectedItems[this.itemColumn];
