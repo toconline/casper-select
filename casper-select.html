@@ -66,14 +66,30 @@
       }
 
       .listItem {
+        padding: 6px;
         display: flex;
-        min-height: 27px;
-        align-items: center;
-        padding: 4px 7px;
         box-sizing: border-box;
         background-color: white;
+        justify-content: space-between;
         @apply --casper-select-listItem;
+      }
 
+      .listItem .listItemIcon {
+        display: flex;
+        align-items: center;
+      }
+
+      .listItem .listItemIcon iron-icon {
+        width: 12px;
+        height: 12px;
+      }
+
+      .listItem:not(.itemSelected) .listItemIcon {
+        display: none;
+      }
+
+      #itemsList > div:not(:last-child) > .listItem {
+        margin-bottom: 1px;
       }
 
       .listItem:not(.itemDisabled):hover {
@@ -93,10 +109,6 @@
         color: white;
         background-color: #007e8e;
         @apply --casper-select-listItem-selected;
-      }
-
-      .listItem.itemSelected iron-icon {
-        height: 15px;
       }
 
       .listItem.itemSelected:hover {
@@ -131,8 +143,6 @@
         padding: 0;
         display: flex;
         flex-wrap: wrap;
-        flex-direction: row;
-        background-color: white;
         border: none;
       }
 
@@ -230,7 +240,7 @@
         --paper-input-container-color: #6f6262;
         --paper-input-container-invalid-color: green;
         --paper-input-container: {
-          background-color: white;
+          background-color: transparent;
         };
         --paper-input-container-input: {
           color: black;
@@ -1151,13 +1161,23 @@
 
         for ( let [key, item] of Object.entries(this.items) ) {
 
+          const iconElement = document.createElement('iron-icon');
+          iconElement.setAttribute('icon', 'casper-icons:check');
+
+          const textContainer = document.createElement('div');
+          const iconContainer = document.createElement('div');
+          iconContainer.classList.add('listItemIcon');
+          iconContainer.appendChild(iconElement);
+
           if ( this.template && this._templateToReplace !== undefined ) {
             let mapping = {};
             this._templateToReplace.forEach(e => mapping[`{${e}}`] = item[e]);
-            item._csHTML = this.template.replace(/\{\w+\}/ig, n => mapping[n]);
+            textContainer.innerHTML = this.template.replace(/\{\w+\}/ig, n => mapping[n]);
           } else {
-            item._csHTML = item[this.itemColumn];
+            textContainer.innerHTML = item[this.itemColumn];
           }
+
+          item._csHTML = textContainer.outerHTML + iconContainer.outerHTML;
           this.items[key] = item;
         }
         if ( !this.filtering ) {
