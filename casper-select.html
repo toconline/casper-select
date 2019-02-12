@@ -1434,6 +1434,8 @@
       }
 
       _debounceFilterItems (event) {
+        event.stopImmediatePropagation();
+
         if ( typeof this._debounceFilterItemsTimeout === "undefined" ) {
           this.filterItems(event.detail.value);
           this._debounceFilterItemsTimeout = setTimeout(() => {}, 0);
