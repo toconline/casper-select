@@ -764,11 +764,9 @@
       }
 
       _setValueInInput () {
-        if (!this._selectedItems) return;
-
         this._tempFiltering = this._tempFiltering || this.filtering;
         this.filtering = false;
-        this.searchInput.value = this._selectedItems[this.itemColumn];
+        this.searchInput.value = this._selectedItems ? this._selectedItems[this.itemColumn] : '';
         this.searchInput.setAttribute('readonly', '');
       }
 
@@ -881,7 +879,8 @@
 
       _itemClicked (e) {
 
-        let classList = e.target.classList;
+        let classList = e.path.find(element => element.classList.contains('listItem')).classList;
+
 
         if ( !this.selectionEnabled || classList.contains("itemDisabled") ) {
           e.preventDefault();
