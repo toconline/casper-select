@@ -833,7 +833,7 @@
 
         this._setValue();
         if ( !this.disabled ) {
-          this.dispatchEvent(new CustomEvent('value-changed', { detail: { selectedItems: newSelectedItems } }));
+          this.dispatchEvent(new CustomEvent('casper-select-changed', { detail: { selectedItems: newSelectedItems } }));
         }
       }
 
