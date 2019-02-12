@@ -1161,23 +1161,14 @@
 
         for ( let [key, item] of Object.entries(this.items) ) {
 
-          const iconElement = document.createElement('iron-icon');
-          iconElement.setAttribute('icon', 'casper-icons:check');
-
-          const textContainer = document.createElement('div');
-          const iconContainer = document.createElement('div');
-          iconContainer.classList.add('listItemIcon');
-          iconContainer.appendChild(iconElement);
-
           if ( this.template && this._templateToReplace !== undefined ) {
             let mapping = {};
             this._templateToReplace.forEach(e => mapping[`{${e}}`] = item[e]);
-            textContainer.innerHTML = this.template.replace(/\{\w+\}/ig, n => mapping[n]);
+            item._csHTML = this._listItemInnerHTML(this.template.replace(/\{\w+\}/ig, n => mapping[n]));
           } else {
-            textContainer.innerHTML = item[this.itemColumn];
+            item._csHTML = this._listItemInnerHTML(item[this.itemColumn]);
           }
 
-          item._csHTML = textContainer.outerHTML + iconContainer.outerHTML;
           this.items[key] = item;
         }
         if ( !this.filtering ) {
@@ -1509,7 +1500,7 @@
                 }
               }
               let newItem = JSON.parse(JSON.stringify( item ));
-              newItem["_csHTML"] = itemText;
+              newItem["_csHTML"] = this._listItemInnerHTML(itemText);
               filteredItems.push(newItem);
             }
           }
@@ -1686,6 +1677,20 @@
 
       _inputLabel () {
         return this.multiSelection ? '' : this.label;
+      }
+
+      _listItemInnerHTML (itemContents) {
+        const iconElement = document.createElement('iron-icon');
+        iconElement.setAttribute('icon', 'casper-icons:check');
+
+        const textContainer = document.createElement('div');
+        textContainer.innerHTML = itemContents;
+
+        const iconContainer = document.createElement('div');
+        iconContainer.classList.add('listItemIcon');
+        iconContainer.appendChild(iconElement);
+
+        return textContainer.outerHTML + iconContainer.outerHTML;
       }
     }
 
