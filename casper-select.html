@@ -20,6 +20,7 @@
 <link rel="import" href="../polymer/polymer-element.html">
 <link rel="import" href="../paper-input/paper-input.html">
 <link rel="import" href="../casper-icons/casper-icons.html">
+<link rel="import" href="../paper-input-container/paper-input-container.html">
 <link rel="import" href="../iron-overlay-behavior/iron-overlay-behavior.html">
 <link rel="import" href="casper-select-dropdown.html">
 
@@ -30,132 +31,50 @@
         display: inline-block;
       }
 
-      #dropdown {
-        overflow: hidden;
-        padding: 4px;
-        border-radius: 0 0 3px 3px;
-        border: 1px solid #aaa;
-        background-color: white;
-        display: flex;
-        flex-direction: column;
-        max-height: 99vh !important;
-        box-shadow: rgba(25, 59, 103, 0.05) 0px 0px 0px 1px,
-                    rgba(28, 55, 90, 0.16) 0px 2px 6px -1px,
-                    rgba(28, 50, 79, 0.38) 0px 8px 24px -4px;
-      }
-
-       #listScroller {
-        overflow: auto;
-        -ms-overflow-style: -ms-autohiding-scrollbar;
-        max-height: var(--casper-combo-box-overlay-max-height, 80vh);
-
-        /* Fixes item background from getting on top of scrollbars on Safari */
-        transform: translate3d(0,0,0);
-
-        /* Enable momentum scrolling on iOS (iron-list v1.2+ no longer does it for us) */
-        -webkit-overflow-scrolling: touch;
-        -webkit-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
-        flex-grow: 1;
-      }
-
-      #itemsList {
-        @apply --casper-select-itemsList;
-      }
-
-      .listItem {
-        padding: 6px;
-        display: flex;
-        box-sizing: border-box;
-        background-color: white;
-        justify-content: space-between;
-        @apply --casper-select-listItem;
-      }
-
-      .listItem .listItemIcon {
-        display: flex;
-        align-items: center;
-      }
-
-      .listItem .listItemIcon iron-icon {
-        width: 12px;
-        height: 12px;
-      }
-
-      .listItem:not(.itemSelected) .listItemIcon {
-        display: none;
-      }
-
-      #itemsList > div:not(:last-child) > .listItem {
-        margin-bottom: 1px;
-      }
-
-      .listItem:not(.itemDisabled):hover {
-        color: white;
-        background-color: var(--primary-color);
-        @apply --casper-select-listItem-hover;
-      }
-
-      .listItem .highlight {
-        border: 1px solid #ccc;
-        font-weight: bold;
-        border-radius: 4px;
-        @apply --casper-select-listItem-highlight;
-      }
-
-      .listItem.itemSelected {
-        color: white;
-        background-color: #007e8e;
-        @apply --casper-select-listItem-selected;
-      }
-
-      .listItem.itemSelected:hover {
-        color: white;
-        background-color: #007e8e;
-        @apply --casper-select-listItem-selected-hover;
-      }
-
-      .listItem.itemDisabled {
-        background-color: #dedede;
-        color: #00000033;
-        cursor: not-allowed;
-        @apply --casper-select-listItem-disabled;
-      }
-
       #noResults {
         text-align: center;
         @apply --casper-select-list-no-results;
-      }
-
-      #searchSelf {
-        width: auto;
       }
 
       #suffixIcon {
         cursor: pointer;
       }
 
-      #dynamicListWithInput {
-        list-style-type: none;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        flex-wrap: wrap;
-        border: none;
+      /* Styles applied to the single-selection variant */
+      .casper-single-selection .input-icons {
+        --paper-input-suffix: {
+          display: flex;
+          color: #525252;
+        };
       }
 
-      #dynamicListWithInput li:not(.input) {
+      .casper-single-selection .input-icons iron-icon {
+        width: 15px;
+        height: 15px;
+        transition: color 200ms linear;
+      }
+
+      .casper-single-selection .input-icons iron-icon:hover {
+        color: black;
+        cursor: pointer;
+      }
+
+      /* Styles applied to the multi-selection variant */
+      .casper-multi-selection .list-items {
+        display: flex;
+        flex-wrap: wrap;
+      }
+
+      .casper-multi-selection .list-items .list-item {
         color: #333;
-        height: 20px;
+        height: 18px;
         display: flex;
         outline: none;
         padding: 0 5px;
         font-size: 12px;
         cursor: default;
         user-select: none;
-        line-height: 12px;
+        line-height: 18px;
         border-radius: 3px;
         align-items: center;
         margin: 0 4px 4px 0;
@@ -163,12 +82,7 @@
         border: 1px solid #6F6262;
       }
 
-      #dynamicListWithInput.listDisabled li:not(.input) {
-        color: #A6A6A6;
-        border: 1px solid #ACACAC;
-      }
-
-      #dynamicListWithInput li:not(.input) button {
+      .casper-multi-selection .list-items .list-item button {
         padding: 0;
         width: 10px;
         height: 10px;
@@ -188,143 +102,171 @@
         background-color: #9E9E9E;
       }
 
-      #dynamicListWithInput li:not(.input) button iron-icon {
-        width: 80%;
-        height: 80%;
-      }
-
-      #dynamicListWithInput li:not(.input) button:hover {
+      .casper-multi-selection .list-items .list-item button:hover {
         background-color: #686868;
       }
 
-      #dynamicListWithInput.listDisabled li:not(.input) button {
+      .casper-multi-selection[disabled] .list-items .list-item button {
         display: none;
       }
 
-      #dynamicListWithInput.multiSelectionWithTags {
-        border-bottom: 1px solid #737373;
+      .casper-multi-selection .list-items .list-item button iron-icon {
+        width: 100%;
+        height: 100%;
       }
 
-      #dynamicListWithInput.multiSelectionWithTags.listDisabled {
-        border-bottom: 1px dashed #E4E4E4;
-      }
-
-      #dynamicListWithInput li.input {
+      .casper-multi-selection .list-item-input {
         width: 0;
         flex-grow: 1;
       }
 
-      :root {
-        --paper-input-container-color: white;
-        --paper-input-container-invalid-color: green;
-
-        --paper-input-container: {
-          padding: 0;
-          background-color: var(--primary-color);
-        };
-        --paper-input-container-input: {
-          color: white;
-        };
-        --paper-input-prefix: {
-          color: white;
-          height: 18px;
-        };
-        --paper-input-suffix: {
-          opacity: 0;
-          color: white;
-          height: 18px;
-        };
+      .casper-multi-selection .list-item-input #searchSelf {
+        border: 0;
+        outline: none;
+        background-color: transparent;
       }
 
-      #searchSelf {
-        --paper-input-container-color: #6f6262;
-        --paper-input-container-invalid-color: green;
-        --paper-input-container: {
-          background-color: transparent;
-        };
-        --paper-input-container-input: {
-          color: black;
-          text-overflow: ellipsis;
-        };
-        --paper-input-prefix: {
-          color: white;
-          height: 18px;
-        };
-        --paper-input-suffix: {
-          color: #525252;
-          height: 15px;
-        };
-      }
-
-      #searchSelf.multiSelectionWithTags {
-        --paper-input-container: {
-          padding: 0;
-        };
-        --paper-input-container-underline: {
-          display: none;
-        };
-        --paper-input-container-underline-focus: {
-          display: none;
-        };
-      }
-
-      .icons {
+      /* Styles applied to the dropdown */
+      #dropdown {
+        padding: 4px;
         display: flex;
-      }
-
-      .icons iron-icon {
-        width: 15px;
-        height: 15px;
-        transition: color 200ms linear;
-      }
-
-      .icons iron-icon:hover {
-        color: black;
-        cursor: pointer;
-      }
-
-      /* Used this hard-coded values to mimic the floating label of the paper-input */
-      .multi-selection-label {
-        height: 18px;
-        display: flex;
-        color: #737373;
-        padding-top: 9px;
+        overflow: hidden;
         flex-direction: column;
-        @apply --paper-font-caption;
+        border: 1px solid #AAA;
+        background-color: white;
+        border-radius: 0 0 3px 3px;
+        max-height: 99vh !important;
+        box-shadow: rgba(25, 59, 103, 0.05) 0px 0px 0px 1px,
+                    rgba(28, 55, 90, 0.16) 0px 2px 6px -1px,
+                    rgba(28, 50, 79, 0.38) 0px 8px 24px -4px;
       }
 
-      .multi-selection-label.listDisabled {
-        color: #E4E4E4;
+       #dropdownScroller {
+        overflow: auto;
+        -ms-overflow-style: -ms-autohiding-scrollbar;
+        max-height: var(--casper-combo-box-overlay-max-height, 80vh);
+
+        /* Fixes item background from getting on top of scrollbars on Safari */
+        transform: translate3d(0,0,0);
+
+        /* Enable momentum scrolling on iOS (iron-list v1.2+ no longer does it for us) */
+        -webkit-overflow-scrolling: touch;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        flex-grow: 1;
+      }
+
+      #dropdownItems {
+        @apply --casper-select-dropdown-items;
+      }
+
+      #dropdownItems .dropdown-item {
+        padding: 6px;
+        display: flex;
+        align-items: center;
+        box-sizing: border-box;
+        background-color: white;
+        justify-content: space-between;
+        @apply --casper-select-dropdown-item;
+      }
+
+      #dropdownItems .dropdown-item.dropdown-item-selected {
+        color: white;
+        background-color: #007E8E;
+        @apply --casper-select-dropdown-item-selected;
+      }
+
+      #dropdownItems .dropdown-item.dropdown-item-selected:hover {
+        color: white;
+        background-color: #007E8E;
+        @apply --casper-select-dropdown-item-selected-hover;
+      }
+
+      #dropdownItems .dropdown-item:not(.dropdown-item-disabled):hover {
+        color: white;
+        background-color: var(--primary-color);
+        @apply --casper-select-dropdown-item-hover;
+      }
+
+      #dropdownItems .dropdown-item .dropdown-item-highlight {
+        border: 1px solid #CCC;
+        font-weight: bold;
+        border-radius: 4px;
+        @apply --casper-select-dropdown-item-highlight;
+      }
+
+      #dropdownItems .dropdown-item .dropdown-item-icon {
+        width: 14px;
+        height: 14px;
+        display: flex;
+        @apply --casper-select-dropdown-item-icon;
+      }
+
+      #dropdownItems > div:not(:last-child) > .dropdown-item {
+        margin-bottom: 1px;
+      }
+
+      #dropdownItems .dropdown-item .dropdown-item-icon iron-icon {
+        width: 100%;
+        height: 100%;
+      }
+
+      #dropdownItems .dropdown-item.dropdown-item-disabled .dropdown-item-icon,
+      #dropdownItems .dropdown-item:not(.dropdown-item-selected) .dropdown-item-icon {
+        display: none;
+      }
+
+      #dropdownItems .dropdown-item.dropdown-item-disabled {
+        color: #00000033;
+        cursor: not-allowed;
+        background-color: #DEDEDE;
+        @apply --casper-select-dropdown-item-disabled;
       }
     </style>
 
     <template is="dom-if" if="[[ searchDynamic ]]">
-      <!--Floating label to mimic the paper-input styling-->
+
+      <!--Multi-selection variant-->
       <template is="dom-if" if="[[multiSelection]]">
-        <label class$="multi-selection-label [[_computedDisabledSelect(disabled)]]">[[label]]</label>
+        <paper-input-container
+          disabled$="[[disabled]]"
+          class="casper-multi-selection"
+          always-float-label$="[[_shouldLabelFloat]]">
+          <label slot="label">[[label]]</label>
+          <iron-input slot="input">
+            <div class="list-items" id="dynamicListWithInput">
+              <div class="list-item-input">
+                <input
+                  id="searchSelf"
+                  disabled$="[[disabled]]"
+                  on-tap="selfInputClicked" />
+              </div>
+            </div>
+          </iron-input>
+        </paper-input-container>
       </template>
 
-      <ul id="dynamicListWithInput" class$="[[ multiSelectionTagsClass ]] [[ _computedDisabledSelect(disabled) ]]">
-        <li class="input">
+      <!--Single-selection variant-->
+      <template is="dom-if" if="[[!multiSelection]]">
+        <div class="casper-single-selection">
           <paper-input
             id="searchSelf"
+            label="[[label]]"
             disabled="[[disabled]]"
-            label="[[_inputLabel()]]"
             on-tap="selfInputClicked"
-            no-label-float="[[noLabelFloat]]"
-            class$="paper-input [[ multiSelectionTagsClass ]]">
-            <template is="dom-if" if="[[!multiSelection]]">
-              <div class="icons" slot="suffix">
-                <!--Only display the first icon if there are selected items-->
-                <template is="dom-if" if="[[_shouldDisplayClearIcon(_selectedItems)]]">
-                  <iron-icon icon="casper-icons:clear" on-click="_clearSelectIconClicked"></iron-icon>
-                </template>
-                <iron-icon icon="casper-icons:arrow-drop-down"></iron-icon>
-              </div>
-            </template>
+            no-label-float="[[noLabelFloat]]">
+            <div class="input-icons" slot="suffix">
+              <!--Only display the first icon if there are selected items-->
+              <template is="dom-if" if="[[_shouldDisplayClearIcon(_selectedItems)]]">
+                <iron-icon icon="casper-icons:clear" on-click="_clearSelectIconClicked"></iron-icon>
+              </template>
+              <iron-icon icon="casper-icons:arrow-drop-down"></iron-icon>
+            </div>
           </paper-input>
-        </li>
-      </ul>
+        </div>
+      </template>
     </template>
 
     <casper-select-dropdown
@@ -341,30 +283,30 @@
           <iron-icon id="suffixIcon" class="iron-icon" icon="casper-icons:clear" alt="limpar" title="limpar"></iron-icon>
         </paper-input>
       </template>
-      <div id="listScroller">
+      <div id="dropdownScroller">
         <iron-list
-          id="itemsList"
-          scroll-target="listScroller"
-          items="[[ filteredItems ]]"
-          selected-items="{{ ironListSelectedItems }}"
-          class$="[[ _computedDisabledSelect(disabled) ]]">
+          id="dropdownItems"
+          items="[[filteredItems]]"
+          scroll-target="dropdownScroller"
+          selected-items="{{ironListSelectedItems}}"
+          class$="[[_computedDisabledSelect(disabled)]]">
           <template>
-            <div on-tap="_itemClicked">
-              <div class$="listItem [[ _computedItemSelectedClass(selected, index) ]] [[ _computedItemDisabledClass(item.csDisabled) ]]"
-                inner-h-t-m-l="[[ _computedItemHtml(item._csHTML) ]]">
-              </div>
+            <div
+              on-tap="_itemClicked"
+              inner-h-t-m-l="[[ _computedItemHtml(item._csHTML) ]]"
+              class$="dropdown-item [[ _computedItemSelectedClass(selected, index) ]] [[ _computedItemDisabledClass(item.csDisabled) ]]">
             </div>
           </template>
         </iron-list>
-        <template is="dom-if" if="[[ noVisibleItems ]]">
-          <div id="noResults">[[ emptyList ]]</div>
+        <template is="dom-if" if="[[noVisibleItems]]">
+          <div id="noResults">[[emptyList]]</div>
         </template>
       </div>
       <slot name="status"></slot>
     </casper-select-dropdown>
   </template>
   <script>
-    "use strict";
+    'use strict';
 
     class CasperSelect extends Polymer.Element {
 
@@ -658,7 +600,7 @@
            */
           highlightTtemplateClass: {
             type: String,
-            value: 'highlight'
+            value: 'dropdown-item-highlight'
           },
           /**
            * Target element (if using exisitng input elements on the page) to attach the select dropdown to
@@ -749,7 +691,7 @@
         } else {
           if ( typeof this._selectedIndex !== "undefined" ) {
             setTimeout(() => {
-              this.$.itemsList.scrollToIndex( this._selectedIndex );
+              this.$.dropdownItems.scrollToIndex( this._selectedIndex );
             }, 16);
           }
           this.opened = true;
@@ -760,7 +702,7 @@
       }
 
       _clearValueInput () {
-        this.searchInput.value = "";
+        this.searchInput.value = '';
       }
 
       _setValueInInput () {
@@ -799,34 +741,40 @@
       }
 
       _selectedItemsChanged ( newSelectedItems ) {
-        let list = this.multiSelectionTagsElementParent ? this.multiSelectionTagsElementParent : this.shadowRoot.querySelector('#dynamicListWithInput');
+        this._shouldLabelFloat = this._inputHasValue();
+
+        let listItems = this.multiSelectionTagsElementParent
+          ? this.multiSelectionTagsElementParent
+          : this.shadowRoot.querySelector('#dynamicListWithInput');
+
         if ( this.multiSelection && this.multiSelectionTags ) {
-          if ( list ) {
-            this._removeDynamicListSelectedValues(list);
+          if ( listItems ) {
+            this._removeDynamicListSelectedValues(listItems);
             if ( newSelectedItems !== undefined && newSelectedItems.length > 0 ) {
               newSelectedItems.forEach( el => {
-                const li = document.createElement('li');
-                const liButton = document.createElement('button');
-                const liSpan = document.createElement('span');
+                const item = document.createElement('div');
+                const itemButton = document.createElement('button');
+                const itemSpan = document.createElement('span');
 
-                const liButtonIcon = document.createElement('iron-icon');
-                liButtonIcon.setAttribute('icon', 'casper-icons:clear');
+                const itemButtonIcon = document.createElement('iron-icon');
+                itemButtonIcon.setAttribute('icon', 'casper-icons:clear');
 
-                liButton.appendChild(liButtonIcon);
-                liButton.dataset.key = el[this.keyColumn];
-                liButton.addEventListener('click', this._removeOptionFromList.bind(this));
-                liSpan.innerHTML = el[this.shortItemColumn] === undefined ? el[this.itemColumn] : el[this.shortItemColumn];
+                itemButton.appendChild(itemButtonIcon);
+                itemButton.dataset.key = el[this.keyColumn];
+                itemButton.addEventListener('click', this._removeOptionFromList.bind(this));
+                itemSpan.innerHTML = el[this.shortItemColumn] === undefined ? el[this.itemColumn] : el[this.shortItemColumn];
 
-                li.appendChild(liButton);
-                li.appendChild(liSpan);
-                list.insertBefore(li, list.lastElementChild);
+                item.classList.add('list-item');
+                item.appendChild(itemButton);
+                item.appendChild(itemSpan);
+                listItems.insertBefore(item, listItems.lastElementChild);
               });
             }
           }
           this.$.dropdown.refit();
         } else {
-          if ( list ) {
-            this._removeDynamicListSelectedValues(list);
+          if ( listItems ) {
+            this._removeDynamicListSelectedValues(listItems);
             this.$.dropdown.refit();
           }
         }
@@ -838,11 +786,12 @@
       }
 
       _removeDynamicListSelectedValues( list ) {
-        let elements = this.multiSelectionTagsElementParent ? list.querySelectorAll('li') : list.querySelectorAll("li:not(:last-child)");
+        let elements = this.multiSelectionTagsElementParent
+          ? list.querySelectorAll('div')
+          : list.querySelectorAll('div:not(:last-child)');
+
         if ( elements.length > 0 ) {
-          [...elements].forEach( el => {
-            list.removeChild(el);
-          });
+          elements.forEach(element => list.removeChild(element));
         }
       }
 
@@ -858,7 +807,7 @@
         }
         for ( let [key, item] of Object.entries(this.ironListSelectedItems) ) {
           if ( item[this.keyColumn] == clickedKey ) {
-            this.$.itemsList.deselectItem( item );
+            this.$.dropdownItems.deselectItem( item );
             break;
           }
         }
@@ -877,14 +826,13 @@
         }
       }
 
-      _itemClicked (e) {
+      _itemClicked (event) {
 
-        let classList = e.path.find(element => element.classList.contains('listItem')).classList;
+        let classList = event.path.find(element => element.classList.contains('dropdown-item')).classList;
 
-
-        if ( !this.selectionEnabled || classList.contains("itemDisabled") ) {
-          e.preventDefault();
-          e.stopPropagation();
+        if ( !this.selectionEnabled || classList.contains('dropdown-item-disabled') ) {
+          event.preventDefault();
+          event.stopPropagation();
           return;
         }
 
@@ -893,9 +841,9 @@
         }
 
         if ( this.multiSelection ) {
-          if ( classList.contains("itemSelected") ) {
+          if ( classList.contains('dropdown-item-selected') ) {
             for ( let [key, item] of Object.entries(this._selectedItems) ) {
-              if ( item[this.keyColumn] == e.model.item[this.keyColumn] ) {
+              if ( item[this.keyColumn] == event.model.item[this.keyColumn] ) {
                 this._selectedItems.splice(key, 1);
                 this._selectedItems = JSON.parse(JSON.stringify( this._selectedItems ));
                 return;
@@ -905,16 +853,16 @@
             if ( typeof this._selectedItems === "undefined" ) {
               this._selectedItems = [];
             }
-            this._selectedItems.push(e.model.item);
+            this._selectedItems.push(event.model.item);
             this._selectedItems = JSON.parse(JSON.stringify( this._selectedItems ));
           }
         } else {
-          if ( classList.contains("itemSelected") ) {
+          if ( classList.contains('dropdown-item-selected') ) {
             this._selectedItems = [];
             this._selectedIndex = -1;
           } else {
-            this._selectedIndex = e.model.index;
-            this._selectedItems = e.model.item;
+            this._selectedIndex = event.model.index;
+            this._selectedItems = event.model.item;
             if ( this.closeOnSelect ) {
               this.closeDropdown();
             }
@@ -940,9 +888,7 @@
 
         let key = event.keyCode
         // tab, enter, esc -- just in case
-        if ([9, 13, 27].includes(key)) {
-          return;
-        }
+        if ([9, 13, 27].includes(key)) return;
 
         let nextLetter = String.fromCharCode(key);
         if (nextLetter.length > 0) {
@@ -973,7 +919,7 @@
               this._selectedItems = JSON.parse(JSON.stringify( this._selectedItems ));
               for ( let [key, item] of Object.entries(this.ironListSelectedItems) ) {
                 if ( item[this.keyColumn] == lastKeySelectedItemInList ) {
-                  this.$.itemsList.deselectItem( item );
+                  this.$.dropdownItems.deselectItem( item );
                   break;
                 }
               }
@@ -987,8 +933,8 @@
               this.lastSelectedItems = this._selectedItems;
               if ( this.opened ) {
 
-                if ( this.$.itemsList.items.length === 1 ) {
-                  this._selectedItems = this.lastSelectedItems = this.$.itemsList.items[0];
+                if ( this.$.dropdownItems.items.length === 1 ) {
+                  this._selectedItems = this.lastSelectedItems = this.$.dropdownItems.items[0];
                 }
 
                 if ( this.closeOnSelect ) {
@@ -1001,9 +947,12 @@
               }
             } else {
               if ( this.opened ) {
-                if ( this.$.itemsList.items.length === 1 && !this._selectedItems.find(item => item[this.keyColumn] === this.$.itemsList.items[0][this.keyColumn])) {
-                  this._selectedItems = [...this._selectedItems, this.$.itemsList.items[0]];
-                  this.lastSelectedItems = [...this.lastSelectedItems, this.$.itemsList.items[0]];
+                if ( this.$.dropdownItems.items.length === 1 && !this._selectedItems.find(item => item[this.keyColumn] === this.$.dropdownItems.items[0][this.keyColumn])) {
+                  this._selectedItems = [...this._selectedItems, this.$.dropdownItems.items[0]];
+                  this.lastSelectedItems = [...this.lastSelectedItems, this.$.dropdownItems.items[0]];
+
+                  this._clearValueInput();
+                  this.filterItems();
                 }
               }
             }
@@ -1064,10 +1013,10 @@
             indexScroll = _selectedIndex - 1;
           }
 
-          this.$.itemsList.selectItem( this.$.itemsList.items[_selectedIndex] );
+          this.$.dropdownItems.selectItem( this.$.dropdownItems.items[_selectedIndex] );
           this._selectedIndex = _selectedIndex;
-          this._selectedItems = this.$.itemsList.items[_selectedIndex];
-          this.$.itemsList.scrollToIndex( indexScroll );
+          this._selectedItems = this.$.dropdownItems.items[_selectedIndex];
+          this.$.dropdownItems.scrollToIndex( indexScroll );
 
           if ( !this.opened ) {
             this._setValueInInput();
@@ -1090,9 +1039,18 @@
             this.searchInput.setAttribute('disabled', '');
           }
           this._unbindSearchInputListeners();
+
+          this.searchInput.addEventListener('focus', () => this._shouldLabelFloat = true);
+          this.searchInput.addEventListener('blur', () => this._shouldLabelFloat = this._inputHasValue());
+
           this.searchInput.addEventListener('value-changed', this._boundDebounceFilterItems);
-          this.searchInput.addEventListener('keydown', this._boundSearchInputKeyDownHandler);
           this.searchInput.addEventListener('keypress', this._boundSearchInputKeyPressHandler);
+          this.searchInput.addEventListener('keydown', event => {
+            this._boundSearchInputKeyDownHandler(event);
+
+            if (this.multiSelection) this._boundDebounceFilterItems(event);
+          });
+
         }
       }
 
@@ -1317,10 +1275,10 @@
 
       _multiSelectionChanged ( newMultiSelectionValue, oldMultiSelectionValue ) {
         if ( newMultiSelectionValue ) {
-          this.$.itemsList.setAttribute('multi-selection', '');
+          this.$.dropdownItems.setAttribute('multi-selection', '');
           this._setMultiSelectionTarget();
         } else {
-          this.$.itemsList.removeAttribute('multi-selection');
+          this.$.dropdownItems.removeAttribute('multi-selection');
           this.multiSelectionTags = false;
         }
         this._selectedItems = [];
@@ -1344,9 +1302,9 @@
 
       _selectionEnabledChanged ( newSelectionEnabledValue ) {
         if ( newSelectionEnabledValue )  {
-          this.$.itemsList.setAttribute('selection-enabled', '');
+          this.$.dropdownItems.setAttribute('selection-enabled', '');
         } else {
-          this.$.itemsList.removeAttribute('selection-enabled');
+          this.$.dropdownItems.removeAttribute('selection-enabled');
           this.ironListSelectedItems = null;
         }
       }
@@ -1361,7 +1319,7 @@
       }
 
       _computedItemDisabledClass ( disabled ) {
-        return disabled ? 'itemDisabled' : '';
+        return disabled ? 'dropdown-item-disabled' : '';
       }
 
       _computedItemSelectedClass ( selected ) {
@@ -1369,7 +1327,7 @@
           this._debounceFocus();
         }
 
-        return selected ? 'itemSelected' : '';
+        return selected ? 'dropdown-item-selected' : '';
       }
 
       _debounceRender (defaultTimeout = 15) {
@@ -1443,6 +1401,7 @@
         } else {
           clearTimeout(this._debounceFilterItemsTimeout);
         }
+
         this._debounceFilterItemsTimeout = setTimeout(() => this.filterItems(), 0);
       }
 
@@ -1450,6 +1409,8 @@
         if ( typeof this.items === "undefined" || this.items.length === 0 || this.filtering === false ) {
           return;
         }
+
+        console.log('filtrei mano - ', query);
 
         if ( clearLast ) {
           this._lastQueryNormalized = this._lastQuery = undefined;
@@ -1535,7 +1496,7 @@
       _resizeItemListHeight (useFiltered = true) {
         let items = useFiltered ? this.filteredItems : this.items;
         if ( this.listHeight != undefined ) {
-          this.$.itemsList.style.height = this.listHeight;
+          this.$.dropdownItems.style.height = this.listHeight;
         }
 
         if (this.searchInput
@@ -1551,7 +1512,7 @@
           for ( let [key, item] of Object.entries(this.items) ) {
             initialIds.forEach(initialId => {
               if (initialId.toString() === item[this.keyColumn].toString()) {
-                this.$.itemsList.selectItem( this.$.itemsList.items[key] );
+                this.$.dropdownItems.selectItem( this.$.dropdownItems.items[key] );
                 foundInitialIds++;
               }
             });
@@ -1569,24 +1530,19 @@
       }
 
       _resizeItemListWidth () {
-        if ( this.listWidth != undefined ) {
+        if (this.listWidth) {
+          // This means the user specified a width via properties.
           this.$.dropdown.style.width = this.listWidth;
-        } else if ( this.items && this.items.length > 0 ) {
-          if ( this.fixedContainerWidth && this.targetElement ) {
-            this.$.dropdown.style.width = this.targetElement.offsetWidth + 'px';
-          } else {
-            const longestItem = this.items.reduce( (a, b) => a[this.itemColumn].length > b[this.itemColumn].length ? a : b );
-            // this._measureCanvas = this._measureCanvas || document.createElement('canvas');
-            /*const listItems = this.$.itemsList.shadowRoot.querySelector('#items').querySelector('slot').assignedNodes();
-            const listItemElement = listItems.find((e) => {
-              return ( e.childNodes.length > 0 && e.lastElementChild.classList.contains('listItem') );
-            });
-            this._measureCanvas.font = window.getComputedStyle(listItemElement).font;*/
-            this.$.dropdown.style.width = Math.max(this.targetElement.offsetWidth, longestItem[this.itemColumn].length * this.listItemWidth) + 'px';
-          }
-        } else if ( this.targetElement ) {
-          this.$.dropdown.style.width = this.targetElement.offsetWidth + 'px';
+        } else if (this.targetElement && (this.fixedContainerWidth || !this.items || this.items.length === 0)) {
+          // This means the dropdown will try to ajust to the container's width.
+            this.$.dropdown.style.width = `${this.targetElement.offsetWidth}px`;
+        } else if (this.targetElement && this.items && this.items.length > 0) {
+          // The width will take into account the longest item.
+          const longestItem = Math.max(...this.items.map(item => item[this.itemColumn].length));
+
+          this.$.dropdown.style.width = `${Math.max(this.targetElement.offsetWidth, longestItem * this.listItemWidth)}px`;
         }
+
         this.$.dropdown.notifyResize();
       }
 
@@ -1595,12 +1551,12 @@
           for ( let [key, item] of Object.entries(this.filteredItems) ) {
             if ( !this.multiSelection ) {
               if ( this._selectedItems[this.keyColumn] == item[this.keyColumn] ) {
-                this.$.itemsList.selectItem( this.$.itemsList.items[key] );
+                this.$.dropdownItems.selectItem( this.$.dropdownItems.items[key] );
               }
             } else {
               for ( let selItem of this._selectedItems ) {
                 if ( selItem[this.keyColumn] == item[this.keyColumn] ) {
-                  this.$.itemsList.selectItem( this.$.itemsList.items[key] );
+                  this.$.dropdownItems.selectItem( this.$.dropdownItems.items[key] );
                 }
               }
             }
@@ -1671,13 +1627,7 @@
        * @param {Object|Array} selectedItems - The currently selected item(s).
        */
       _shouldDisplayClearIcon (selectedItems) {
-        return !this.multiSelection
-          && selectedItems
-          && Object.entries(selectedItems).length > 0;
-      }
-
-      _inputLabel () {
-        return this.multiSelection ? '' : this.label;
+        return selectedItems && Object.entries(selectedItems).length > 0;
       }
 
       _listItemInnerHTML (itemContents) {
@@ -1688,10 +1638,20 @@
         textContainer.innerHTML = itemContents;
 
         const iconContainer = document.createElement('div');
-        iconContainer.classList.add('listItemIcon');
+        iconContainer.classList.add('dropdown-item-icon');
         iconContainer.appendChild(iconElement);
 
         return textContainer.outerHTML + iconContainer.outerHTML;
+      }
+
+      _inputHasValue () {
+        return this._selectedItems &&
+          ((this.multiSelection && this._selectedItems.length > 0) ||
+          (!this.multiSelection && Object.entries(this._selectedItems).length > 0));
+      }
+
+      _shouldLabelFloat () {
+        return this._inputHasValue();
       }
     }
 
