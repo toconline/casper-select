@@ -170,6 +170,7 @@
       #dropdownItems .dropdown-item {
         display: flex;
         padding: 5px;
+
         min-height: 30px;
         align-items: center;
         box-sizing: border-box;
@@ -208,21 +209,23 @@
         @apply --casper-select-dropdown-item-highlight;
       }
 
+      #dropdownItems .dropdown-item .dropdown-item-text {
+        word-break: break-all;
+      }
+
       #dropdownItems .dropdown-item .dropdown-item-icon {
-        width: 14px;
-        height: 14px;
-        display: flex;
+        flex: 0 0 14px;
         @apply --casper-select-dropdown-item-icon;
       }
 
       #dropdownItems .dropdown-item .dropdown-item-icon iron-icon {
         width: 100%;
         height: 100%;
+        display: none;
       }
 
-      #dropdownItems .dropdown-item.dropdown-item-disabled .dropdown-item-icon,
-      #dropdownItems .dropdown-item:not(.dropdown-item-selected) .dropdown-item-icon {
-        display: none;
+      #dropdownItems .dropdown-item.dropdown-item-selected .dropdown-item-icon iron-icon {
+        display: block;
       }
 
       #dropdownItems .dropdown-item.dropdown-item-disabled {
@@ -1650,6 +1653,7 @@
         iconElement.setAttribute('icon', 'casper-icons:check');
 
         const textContainer = document.createElement('div');
+        textContainer.classList.add('dropdown-item-text');
         textContainer.innerHTML = itemContents;
 
         const iconContainer = document.createElement('div');
