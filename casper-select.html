@@ -659,7 +659,15 @@
           resetOnOpen: {
             type: Boolean,
             value: false
-          }
+          },
+          /**
+           * Hides the clear icon button.
+           * @type {Boolean}
+           */
+          noClearIcon: {
+            type: Boolean,
+            value: false
+          },
         };
       }
 
@@ -1632,7 +1640,9 @@
        * @param {Object|Array} selectedItems - The currently selected item(s).
        */
       _shouldDisplayClearIcon (selectedItems) {
-        return selectedItems && Object.entries(selectedItems).length > 0;
+        return !this.noClearIcon
+          && selectedItems
+          && Object.entries(selectedItems).length > 0;
       }
 
       _listItemInnerHTML (itemContents) {
