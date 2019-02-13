@@ -20,7 +20,7 @@
 <link rel="import" href="../polymer/polymer-element.html">
 <link rel="import" href="../paper-input/paper-input.html">
 <link rel="import" href="../casper-icons/casper-icons.html">
-<link rel="import" href="../paper-input-container/paper-input-container.html">
+<link rel="import" href="../paper-input/paper-input-container.html">
 <link rel="import" href="../iron-overlay-behavior/iron-overlay-behavior.html">
 <link rel="import" href="casper-select-dropdown.html">
 
@@ -29,11 +29,6 @@
     <style>
       :host {
         display: inline-block;
-      }
-
-      #noResults {
-        text-align: center;
-        @apply --casper-select-list-no-results;
       }
 
       #suffixIcon {
@@ -118,6 +113,7 @@
       .casper-multi-selection .list-item-input {
         width: 0;
         flex-grow: 1;
+        overflow: hidden;
       }
 
       .casper-multi-selection .list-item-input #searchSelf {
@@ -141,6 +137,11 @@
                     rgba(28, 50, 79, 0.38) 0px 8px 24px -4px;
       }
 
+      #dropdown-no-items {
+        text-align: center;
+        @apply --casper-select-dropdown-no-items;
+      }
+
        #dropdownScroller {
         overflow: auto;
         -ms-overflow-style: -ms-autohiding-scrollbar;
@@ -162,14 +163,24 @@
         @apply --casper-select-dropdown-items;
       }
 
+      #dropdownItems[hidden] {
+        display: none;
+      }
+
       #dropdownItems .dropdown-item {
-        padding: 6px;
         display: flex;
+        padding: 5px;
+        min-height: 30px;
         align-items: center;
         box-sizing: border-box;
         background-color: white;
+        border-bottom: 1px solid white;
         justify-content: space-between;
         @apply --casper-select-dropdown-item;
+      }
+
+      #dropdownItems .dropdown-item[hidden] {
+        display: none;
       }
 
       #dropdownItems .dropdown-item.dropdown-item-selected {
@@ -202,10 +213,6 @@
         height: 14px;
         display: flex;
         @apply --casper-select-dropdown-item-icon;
-      }
-
-      #dropdownItems > div:not(:last-child) > .dropdown-item {
-        margin-bottom: 1px;
       }
 
       #dropdownItems .dropdown-item .dropdown-item-icon iron-icon {
@@ -287,19 +294,20 @@
         <iron-list
           id="dropdownItems"
           items="[[filteredItems]]"
+          hidden$="[[noVisibleItems]]"
           scroll-target="dropdownScroller"
           selected-items="{{ironListSelectedItems}}"
           class$="[[_computedDisabledSelect(disabled)]]">
           <template>
             <div
               on-tap="_itemClicked"
-              inner-h-t-m-l="[[ _computedItemHtml(item._csHTML) ]]"
+              inner-h-t-m-l="[[_computedItemHtml(item._csHTML)]]"
               class$="dropdown-item [[ _computedItemSelectedClass(selected, index) ]] [[ _computedItemDisabledClass(item.csDisabled) ]]">
             </div>
           </template>
         </iron-list>
         <template is="dom-if" if="[[noVisibleItems]]">
-          <div id="noResults">[[emptyList]]</div>
+          <div id="dropdown-no-items">[[emptyList]]</div>
         </template>
       </div>
       <slot name="status"></slot>
@@ -658,6 +666,8 @@
       ready () {
         super.ready();
 
+        this._boundSearchInputBlurred = this._searchInputBlurred.bind(this);
+        this._boundSearchInputFocused = this._searchInputFocused.bind(this);
         this._boundDebounceFilterItems = this._debounceFilterItems.bind(this);
         this._boundSearchInputKeyDownHandler = this._searchInputKeyDownHandler.bind(this);
         this._boundSearchInputKeyPressHandler = this._searchInputKeyPressHandler.bind(this);
@@ -773,10 +783,7 @@
           }
           this.$.dropdown.refit();
         } else {
-          if ( listItems ) {
-            this._removeDynamicListSelectedValues(listItems);
-            this.$.dropdown.refit();
-          }
+          this.$.dropdown.refit();
         }
 
         this._setValue();
@@ -999,6 +1006,9 @@
             event.stopPropagation();
             return;
         }
+
+        // The value-changed event is not fired for iron-input elements.
+        if (this.multiSelection) this._boundDebounceFilterItems(event);
       }
 
       _moveSelection (direction) {
@@ -1040,22 +1050,19 @@
           }
           this._unbindSearchInputListeners();
 
-          this.searchInput.addEventListener('focus', () => this._shouldLabelFloat = true);
-          this.searchInput.addEventListener('blur', () => this._shouldLabelFloat = this._inputHasValue());
-
+          this.searchInput.addEventListener('blur', this._boundSearchInputBlurred);
+          this.searchInput.addEventListener('focus', this._boundSearchInputFocused);
           this.searchInput.addEventListener('value-changed', this._boundDebounceFilterItems);
+          this.searchInput.addEventListener('keydown', this._boundSearchInputKeyDownHandler);
           this.searchInput.addEventListener('keypress', this._boundSearchInputKeyPressHandler);
-          this.searchInput.addEventListener('keydown', event => {
-            this._boundSearchInputKeyDownHandler(event);
-
-            if (this.multiSelection) this._boundDebounceFilterItems(event);
-          });
 
         }
       }
 
       _unbindSearchInputListeners () {
         if ( this.searchInput ) {
+          this.searchInput.removeEventListener('blur', this._boundSearchInputBlurred);
+          this.searchInput.removeEventListener('focus', this._boundSearchInputFocused);
           this.searchInput.removeEventListener('value-changed', this._boundDebounceFilterItems);
           this.searchInput.removeEventListener('keydown', this._boundSearchInputKeyDownHandler);
           this.searchInput.removeEventListener('keypress', this._boundSearchInputKeyPressHandler);
@@ -1410,8 +1417,6 @@
           return;
         }
 
-        console.log('filtrei mano - ', query);
-
         if ( clearLast ) {
           this._lastQueryNormalized = this._lastQuery = undefined;
         }
@@ -1495,7 +1500,7 @@
 
       _resizeItemListHeight (useFiltered = true) {
         let items = useFiltered ? this.filteredItems : this.items;
-        if ( this.listHeight != undefined ) {
+        if (this.listHeight) {
           this.$.dropdownItems.style.height = this.listHeight;
         }
 
@@ -1522,7 +1527,7 @@
 
           // Mark this flag to not run this code section in the future
           this._alreadyInitialized = true;
-          this._selectedItems = this.lastSelectedItems = JSON.parse(JSON.stringify( this.ironListSelectedItems ));
+          this._selectedItems = this.lastSelectedItems = JSON.parse(JSON.stringify(this.ironListSelectedItems));
 
           // Only set the value in the search input for single-selection.
           if (!this.multiSelection) this._setValueInInput();
@@ -1650,8 +1655,12 @@
           (!this.multiSelection && Object.entries(this._selectedItems).length > 0));
       }
 
-      _shouldLabelFloat () {
-        return this._inputHasValue();
+      _searchInputBlurred () {
+        this._shouldLabelFloat = this.searchInput.value || this._inputHasValue();
+      }
+
+      _searchInputFocused () {
+        this._shouldLabelFloat = true;
       }
     }
 
