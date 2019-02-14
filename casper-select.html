@@ -21,6 +21,7 @@
 <link rel="import" href="../paper-input/paper-input.html">
 <link rel="import" href="../casper-icons/casper-icons.html">
 <link rel="import" href="../paper-input/paper-input-container.html">
+<link rel="import" href="../iron-scroll-threshold/iron-scroll-threshold.html">
 <link rel="import" href="../iron-overlay-behavior/iron-overlay-behavior.html">
 <link rel="import" href="casper-select-dropdown.html">
 
@@ -293,7 +294,10 @@
           <iron-icon id="suffixIcon" class="iron-icon" icon="casper-icons:clear" alt="limpar" title="limpar"></iron-icon>
         </paper-input>
       </template>
-      <div id="dropdownScroller">
+      <iron-scroll-threshold
+        id="dropdownScroller"
+        on-lower-threshold="_loadMoreItems"
+        lower-threshold="[[_lowerThreshold()]]">
         <iron-list
           id="dropdownItems"
           items="[[filteredItems]]"
@@ -309,10 +313,10 @@
             </div>
           </template>
         </iron-list>
-        <template is="dom-if" if="[[noVisibleItems]]">
-          <div id="dropdown-no-items">[[emptyList]]</div>
-        </template>
-      </div>
+      </iron-scroll-threshold>
+      <template is="dom-if" if="[[noVisibleItems]]">
+        <div id="dropdown-no-items">[[emptyList]]</div>
+      </template>
       <slot name="status"></slot>
     </casper-select-dropdown>
   </template>
@@ -323,6 +327,10 @@
 
       static get is () {
         return 'casper-select';
+      }
+
+      static get _defaultLowerThreshold () {
+        return 100;
       }
 
       static get properties () {
@@ -671,6 +679,30 @@
             type: Boolean,
             value: false
           },
+
+
+
+          lazyLoad: {
+            type: Boolean,
+            value: false
+          },
+          lazyLoadResource: String,
+          lazyLoadPageSize: {
+            type: Number,
+            value: 100
+          },
+          lazyLoadPageSizeAttr: {
+            type: String,
+            value: 'page[size]'
+          },
+          lazyLoadPageNumberAttr: {
+            type: String,
+            value: 'page[number]'
+          },
+          _lazyLoadCurrentPage: {
+            type: Number,
+            value: 1
+          }
         };
       }
 
@@ -684,8 +716,9 @@
         this._boundSearchInputKeyPressHandler = this._searchInputKeyPressHandler.bind(this);
         this._boundClearSearch = this._clearSearch.bind(this);
 
-        this.$.dropdown.addEventListener('opened-changed', e => this._onOpenedChanged(e));
-        this.$.dropdown.addEventListener('iron-overlay-canceled', e => this._cancelOverlay(e));
+        this.$.dropdown.addEventListener('opened-changed', event => this._onOpenedChanged(event));
+        this.$.dropdown.addEventListener('iron-overlay-canceled', event => this._cancelOverlay(event));
+        this.$.dropdownScroller.addEventListener('lower-trigger', event => this._loadMoreItems(event));
 
         window.select = this;
       }
@@ -1675,6 +1708,38 @@
 
       _searchInputFocused () {
         this._shouldLabelFloat = true;
+      }
+
+      _lowerThreshold () {
+        return this.lazyLoadResource ? null : this._defaultLowerThreshold;
+      }
+
+      _loadMoreItems () {
+        this.ironScrollThreshold =
+          this.ironScrollThreshold ||
+          this.shadowRoot.querySelector('iron-scroll-threshold');
+
+        const items = this.items || [];
+
+        const resourceUrlParams = [
+          `${this.lazyLoadPageSizeAttr}=${this.lazyLoadPageSize}`,
+          `${this.lazyLoadPageNumberAttr}=${this._lazyLoadCurrentPage}`
+        ];
+
+        const resourceUrl = `${this.lazyLoadResource}?${resourceUrlParams.join('&')}`;
+
+        app.socket.getData(resourceUrl, 10000, socketResponse => {
+          if (socketResponse.errors) return;
+
+          this.items = [
+            ...items,
+            ...socketResponse.data.map(item => this.lazyLoadCallback(item))
+          ];
+
+          // Increment the current page number and reset the scroll event listeners.
+          this._lazyLoadCurrentPage++;
+          this.ironScrollThreshold.clearTriggers();
+        });
       }
     }
 
