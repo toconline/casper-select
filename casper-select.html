@@ -1483,7 +1483,7 @@
           this.filteredItems = [];
 
           if ( this.template ) {
-            let _filterTemplateHTML = document.createElement('div');
+            this._filterTemplateHTML = this._filterTemplateHTML || document.createElement('div');
           }
 
           for ( let [key, item] of Object.entries(this.items) ) {
@@ -1491,8 +1491,8 @@
             let itemValue = this._itemColumn(item);
 
             if ( this.template ) {
-              _filterTemplateHTML.innerHTML = this._itemColumn(item);
-              itemValue = _filterTemplateHTML.textContent || _filterTemplateHTML.innerText || itemValue;
+              this._filterTemplateHTML.innerHTML = this._itemColumn(item);
+              itemValue = this._filterTemplateHTML.textContent || this._filterTemplateHTML.innerText || itemValue;
             }
 
             let itemNormalized = itemValue.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
