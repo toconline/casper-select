@@ -317,7 +317,7 @@
     </casper-select-dropdown>
   </template>
   <script>
-    'use strict';
+    "use strict";
 
     class CasperSelect extends Polymer.Element {
 
@@ -1118,7 +1118,24 @@
         }
       }
 
+      _destroy() {
+        this.ironListSelectedItems = null;
+        this.filteredItems = [];
+        this.lastSelectedItems = [];
+        this._selectedItems = [];
+        this.items = [];
+        this._clearSearch();
+        if (this.opened) {
+          this.closeDropdown();
+        }
+      }
+
       _itemsChanged ( newItems ) {
+
+        if ( newItems == undefined || newItems == null || newItems && newItems.length == 0 ) {
+          return this._destroy();
+        }
+
         if ( newItems && newItems && newItems.length > 0 && newItems[0].constructor === String) {
           let itemsConvertedToObject = [];
           newItems.forEach( (element, index) => itemsConvertedToObject.push({id: index, name: element}));
@@ -1175,7 +1192,7 @@
       }
 
       disableAllItems () {
-        this.disableItems ( [], false, true );
+        this.disableItems( [], false, true );
       }
 
       disableItems ( disabledItemsKeys, cleanPrevious = false, disableAll = false ) {
