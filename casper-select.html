@@ -893,9 +893,14 @@
       }
 
       _clearSearch () {
-        this.searchInput.value = "";
-        this.shadowRoot.querySelector("#suffixIcon").style.opacity = 0;
-        this.shadowRoot.querySelector("#suffixIcon").removeEventListener('click', this._boundClearSearch);
+        if ( this.searchInput ) {
+          this.searchInput.value = "";
+        }
+        const sfxIcon = this.shadowRoot.querySelector("#suffixIcon");
+        if ( sfxIcon ) {
+          sfxIcon.style.opacity = 0;
+          sfxIcon.removeEventListener('click', this._boundClearSearch);
+        }
       }
 
       _searchInputKeyPressHandler (event) {
@@ -1118,13 +1123,14 @@
         }
       }
 
-      _destroy() {
+      _destroy () {
         this.ironListSelectedItems = null;
         this.filteredItems = [];
         this.lastSelectedItems = [];
         this._selectedItems = [];
-        this.items = [];
         this._clearSearch();
+        this._alreadyInitialized = false;
+        this.initialId = undefined;
         if (this.opened) {
           this.closeDropdown();
         }
