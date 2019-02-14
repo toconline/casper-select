@@ -1136,6 +1136,18 @@
         }
       }
 
+      _itemColumn(item) {
+        let csHTML;
+        if ( this.template && this._templateToReplace !== undefined ) {
+          let mapping = {};
+          this._templateToReplace.forEach(e => mapping[`{${e}}`] = item[e]);
+          csHTML = this._listItemInnerHTML(this.template.replace(/\{\w+\}/ig, n => mapping[n]));
+        } else {
+          csHTML = this._listItemInnerHTML(item[this.itemColumn]);
+        }
+        return csHTML;
+      }
+
       _itemsChanged ( newItems ) {
 
         if ( newItems == undefined || newItems == null || newItems && newItems.length == 0 ) {
@@ -1158,15 +1170,7 @@
         }
 
         for ( let [key, item] of Object.entries(this.items) ) {
-
-          if ( this.template && this._templateToReplace !== undefined ) {
-            let mapping = {};
-            this._templateToReplace.forEach(e => mapping[`{${e}}`] = item[e]);
-            item._csHTML = this._listItemInnerHTML(this.template.replace(/\{\w+\}/ig, n => mapping[n]));
-          } else {
-            item._csHTML = this._listItemInnerHTML(item[this.itemColumn]);
-          }
-
+          item._csHTML = this._itemColumn(item);
           this.items[key] = item;
         }
         if ( !this.filtering ) {
@@ -1477,8 +1481,19 @@
           this._lastQueryNormalized = queryNormalized;
           this.filteredItems = [];
 
+          if ( this.template ) {
+            let _filterTemplateHTML = document.createElement('div');
+          }
+
           for ( let [key, item] of Object.entries(this.items) ) {
-            let itemValue = item[this.itemColumn];
+
+            let itemValue = this._itemColumn(item);
+
+            if ( this.template ) {
+              _filterTemplateHTML.innerHTML = this._itemColumn(item);
+              itemValue = _filterTemplateHTML.textContent || _filterTemplateHTML.innerText || itemValue;
+            }
+
             let itemNormalized = itemValue.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
             let modifications = [];
 
@@ -1490,18 +1505,25 @@
             }
 
             if ( modifications.length > 0 && modifications.length == queryNormalized.length )  {
-              modifications = this._mergeOverlappedRanges(modifications);
-              let itemText = itemValue.substring(0, modifications[0][0]);
-              for ( let m = 0; m < (modifications.length); m++ ) {
-                itemText += highlightTemplate.begin + itemValue.substring(modifications[m][0], modifications[m][1] + 1) + highlightTemplate.end;
-                if ( m === (modifications.length) - 1) {
-                  itemText += itemValue.substring(modifications[m][1] + 1, itemValue.length);
-                } else {
-                  itemText += itemValue.substring(modifications[m][1] + 1, modifications[m+1][0]);
+              let itemText;
+              if ( this.template ) {
+                itemText = itemValue;
+              } else {
+                // Create highlight template tag around matches
+                modifications = this._mergeOverlappedRanges(modifications);
+                itemText = itemValue.substring(0, modifications[0][0]);
+                for ( let m = 0; m < (modifications.length); m++ ) {
+                  itemText += highlightTemplate.begin + itemValue.substring(modifications[m][0], modifications[m][1] + 1) + highlightTemplate.end;
+                  if ( m === (modifications.length) - 1) {
+                    itemText += itemValue.substring(modifications[m][1] + 1, itemValue.length);
+                  } else {
+                    itemText += itemValue.substring(modifications[m][1] + 1, modifications[m+1][0]);
+                  }
                 }
               }
+
               let newItem = JSON.parse(JSON.stringify( item ));
-              newItem["_csHTML"] = this._listItemInnerHTML(itemText);
+              newItem._csHTML = itemText;
               filteredItems.push(newItem);
             }
           }
