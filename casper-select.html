@@ -1508,7 +1508,7 @@
             if ( modifications.length > 0 && modifications.length == queryNormalized.length )  {
               let itemText;
               if ( this.template ) {
-                itemText = itemValue;
+                itemText = this._itemColumn(item);
               } else {
                 // Create highlight template tag around matches
                 modifications = this._mergeOverlappedRanges(modifications);
