@@ -211,6 +211,7 @@
       }
 
       #dropdownItems .dropdown-item .dropdown-item-text {
+        flex-grow: 1;
         word-break: break-all;
       }
 
@@ -321,7 +322,7 @@
     </casper-select-dropdown>
   </template>
   <script>
-    'use strict';
+    "use strict";
 
     class CasperSelect extends Polymer.Element {
 
@@ -926,9 +927,14 @@
       }
 
       _clearSearch () {
-        this.searchInput.value = "";
-        this.shadowRoot.querySelector("#suffixIcon").style.opacity = 0;
-        this.shadowRoot.querySelector("#suffixIcon").removeEventListener('click', this._boundClearSearch);
+        if ( this.searchInput ) {
+          this.searchInput.value = "";
+        }
+        const sfxIcon = this.shadowRoot.querySelector("#suffixIcon");
+        if ( sfxIcon ) {
+          sfxIcon.style.opacity = 0;
+          sfxIcon.removeEventListener('click', this._boundClearSearch);
+        }
       }
 
       _searchInputKeyPressHandler (event) {
@@ -1151,7 +1157,37 @@
         }
       }
 
+      _destroy () {
+        this.ironListSelectedItems = null;
+        this.filteredItems = [];
+        this.lastSelectedItems = [];
+        this._selectedItems = [];
+        this._clearSearch();
+        this._alreadyInitialized = false;
+        this.initialId = undefined;
+        if (this.opened) {
+          this.closeDropdown();
+        }
+      }
+
+      _itemColumn(item) {
+        let csHTML;
+        if ( this.template && this._templateToReplace !== undefined ) {
+          let mapping = {};
+          this._templateToReplace.forEach(e => mapping[`{${e}}`] = item[e]);
+          csHTML = this._listItemInnerHTML(this.template.replace(/\{\w+\}/ig, n => mapping[n]));
+        } else {
+          csHTML = this._listItemInnerHTML(item[this.itemColumn]);
+        }
+        return csHTML;
+      }
+
       _itemsChanged ( newItems ) {
+
+        if ( newItems == undefined || newItems == null || newItems && newItems.length == 0 ) {
+          return this._destroy();
+        }
+
         if ( newItems && newItems && newItems.length > 0 && newItems[0].constructor === String) {
           let itemsConvertedToObject = [];
           newItems.forEach( (element, index) => itemsConvertedToObject.push({id: index, name: element}));
@@ -1168,15 +1204,7 @@
         }
 
         for ( let [key, item] of Object.entries(this.items) ) {
-
-          if ( this.template && this._templateToReplace !== undefined ) {
-            let mapping = {};
-            this._templateToReplace.forEach(e => mapping[`{${e}}`] = item[e]);
-            item._csHTML = this._listItemInnerHTML(this.template.replace(/\{\w+\}/ig, n => mapping[n]));
-          } else {
-            item._csHTML = this._listItemInnerHTML(item[this.itemColumn]);
-          }
-
+          item._csHTML = this._itemColumn(item);
           this.items[key] = item;
         }
         if ( !this.filtering ) {
@@ -1208,7 +1236,7 @@
       }
 
       disableAllItems () {
-        this.disableItems ( [], false, true );
+        this.disableItems( [], false, true );
       }
 
       disableItems ( disabledItemsKeys, cleanPrevious = false, disableAll = false ) {
@@ -1487,8 +1515,19 @@
           this._lastQueryNormalized = queryNormalized;
           this.filteredItems = [];
 
+          if ( this.template ) {
+            this._filterTemplateHTML = this._filterTemplateHTML || document.createElement('div');
+          }
+
           for ( let [key, item] of Object.entries(this.items) ) {
-            let itemValue = item[this.itemColumn];
+
+            let itemValue = this._itemColumn(item);
+
+            if ( this.template ) {
+              this._filterTemplateHTML.innerHTML = this._itemColumn(item);
+              itemValue = this._filterTemplateHTML.textContent || this._filterTemplateHTML.innerText || itemValue;
+            }
+
             let itemNormalized = itemValue.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
             let modifications = [];
 
@@ -1500,18 +1539,25 @@
             }
 
             if ( modifications.length > 0 && modifications.length == queryNormalized.length )  {
-              modifications = this._mergeOverlappedRanges(modifications);
-              let itemText = itemValue.substring(0, modifications[0][0]);
-              for ( let m = 0; m < (modifications.length); m++ ) {
-                itemText += highlightTemplate.begin + itemValue.substring(modifications[m][0], modifications[m][1] + 1) + highlightTemplate.end;
-                if ( m === (modifications.length) - 1) {
-                  itemText += itemValue.substring(modifications[m][1] + 1, itemValue.length);
-                } else {
-                  itemText += itemValue.substring(modifications[m][1] + 1, modifications[m+1][0]);
+              let itemText;
+              if ( this.template ) {
+                itemText = this._itemColumn(item);
+              } else {
+                // Create highlight template tag around matches
+                modifications = this._mergeOverlappedRanges(modifications);
+                itemText = itemValue.substring(0, modifications[0][0]);
+                for ( let m = 0; m < (modifications.length); m++ ) {
+                  itemText += highlightTemplate.begin + itemValue.substring(modifications[m][0], modifications[m][1] + 1) + highlightTemplate.end;
+                  if ( m === (modifications.length) - 1) {
+                    itemText += itemValue.substring(modifications[m][1] + 1, itemValue.length);
+                  } else {
+                    itemText += itemValue.substring(modifications[m][1] + 1, modifications[m+1][0]);
+                  }
                 }
               }
+
               let newItem = JSON.parse(JSON.stringify( item ));
-              newItem["_csHTML"] = this._listItemInnerHTML(itemText);
+              newItem._csHTML = itemText;
               filteredItems.push(newItem);
             }
           }
