@@ -20,7 +20,7 @@
 <link rel="import" href="../polymer/polymer-element.html">
 <link rel="import" href="../paper-input/paper-input.html">
 <link rel="import" href="../casper-icons/casper-icons.html">
-<link rel="import" href="../paper-spinner/paper-spinner.html">
+<link rel="import" href="../paper-progress/paper-progress.html">
 <link rel="import" href="../paper-input/paper-input-container.html">
 <link rel="import" href="../iron-scroll-threshold/iron-scroll-threshold.html">
 <link rel="import" href="../iron-overlay-behavior/iron-overlay-behavior.html">
@@ -67,8 +67,8 @@
         display: flex;
         outline: none;
         padding: 0 5px;
-        font-size: 12px;
         cursor: default;
+        font-size: 12px;
         min-height: 18px;
         user-select: none;
         border-radius: 3px;
@@ -141,8 +141,17 @@
       }
 
       #dropdown-no-items {
-        text-align: center;
+        display: flex;
+        font-size: 13px;
+        color: lightgrey;
+        align-items: center;
+        flex-direction: column;
         @apply --casper-select-dropdown-no-items;
+      }
+
+      #dropdown-no-items iron-icon {
+        width: 75px;
+        height: 75px;
       }
 
        #dropdownScroller {
@@ -174,7 +183,7 @@
       #dropdownItems .dropdown-item {
         padding: 5px;
         display: flex;
-        font-size: 12px;
+        font-size: 13px;
         min-height: 30px;
         align-items: center;
         box-sizing: border-box;
@@ -247,6 +256,20 @@
       #measureDropdownItem {
         opacity: 0;
         position: absolute;
+      }
+
+      .dropdown-paging {
+        display: flex;
+        color: #737373;
+        line-height: 30px;
+        font-size: 0.85em;
+        align-items: center;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .dropdown-paging paper-progress[hidden] {
+        visibility: hidden;
       }
     </style>
 
@@ -330,14 +353,17 @@
       </iron-scroll-threshold>
 
       <template is="dom-if" if="[[noVisibleItems]]">
-        <div id="dropdown-no-items">[[emptyList]]</div>
+        <div id="dropdown-no-items">
+          <iron-icon icon="casper-icons:empty-data"></iron-icon>
+          [[emptyListMessage]]
+        </div>
       </template>
 
       <template is="dom-if" if="[[lazyLoadResource]]">
         <slot name="status">
           <div class="dropdown-paging">
             [[_dropdownPagingInfo(items, _lazyLoadTotalResults)]]
-            <paper-spinner active="[[_lazyLoadFetching]]"></paper-spinner>
+            <paper-progress indeterminate hidden$="[[!_lazyLoadFetching]]"></paper-progress>
           </div>
         </slot>
       </template>
@@ -448,7 +474,7 @@
            * Empty List String
            * @type {String}
            */
-          emptyList: {
+          emptyListMessage: {
             type: String,
             value: 'Lista vazia'
           },
@@ -1866,7 +1892,7 @@
             if (socketResponse.errors) return;
 
             // Calculate the total number of existing pages.
-            this._lazyLoadTotalResults = socketResponse.meta.total;
+            this._lazyLoadTotalResults = parseInt(socketResponse.meta.total);
 
             // Either replace the all items list if it was triggered by a search or append if it's a scroll event.
             const currentItems = this.items || [];
@@ -1892,12 +1918,12 @@
             this.items = resultItems;
 
             // Open the dropdown if this was triggered from a search event.
-            if (triggeredFromSearch && socketResponse.data.length > 0 && !this.opened) {
+            if (triggeredFromSearch && !this.opened) {
               this.openDropdown();
             }
 
-            // Disable further socket queries if this was triggered from scroll and there are no more results.
-            this._lazyLoadDisabled = !triggeredFromSearch && this._lazyLoadCurrentPage === this._lazyLoadTotalPages;
+            // Disable further socket queries if there are no more results.
+            this._lazyLoadDisabled = this.items.length === this._lazyLoadTotalResults;
           });
         });
       }
@@ -1966,7 +1992,7 @@
         // This is to display the initial information if the user specified an initial id and didn't begin filtering.
         totalItemsLength = totalItemsLength !== undefined ? totalItemsLength : items.length;
 
-        return `A mostrar ${items.length} de ${totalItemsLength}`;
+        return `${items.length} de ${totalItemsLength}`;
       }
     }
 
