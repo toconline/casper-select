@@ -1963,6 +1963,9 @@
       }
 
       _dropdownPagingInfo (items, totalItemsLength) {
+        // This is to display the initial information if the user specified an initial id and didn't begin filtering.
+        totalItemsLength = totalItemsLength !== undefined ? totalItemsLength : items.length;
+
         return `A mostrar ${items.length} de ${totalItemsLength}`;
       }
     }
