@@ -20,6 +20,7 @@
 <link rel="import" href="../polymer/polymer-element.html">
 <link rel="import" href="../paper-input/paper-input.html">
 <link rel="import" href="../casper-icons/casper-icons.html">
+<link rel="import" href="../paper-spinner/paper-spinner.html">
 <link rel="import" href="../paper-input/paper-input-container.html">
 <link rel="import" href="../iron-scroll-threshold/iron-scroll-threshold.html">
 <link rel="import" href="../iron-overlay-behavior/iron-overlay-behavior.html">
@@ -119,6 +120,7 @@
 
       .casper-multi-selection .list-item-input #searchSelf {
         border: 0;
+        width: 100%;
         outline: none;
         background-color: transparent;
       }
@@ -149,7 +151,7 @@
         max-height: var(--casper-combo-box-overlay-max-height, 80vh);
 
         /* Fixes item background from getting on top of scrollbars on Safari */
-        transform: translate3d(0,0,0);
+        transform: translate3d(0, 0, 0);
 
         /* Enable momentum scrolling on iOS (iron-list v1.2+ no longer does it for us) */
         -webkit-overflow-scrolling: touch;
@@ -212,7 +214,11 @@
 
       #dropdownItems .dropdown-item .dropdown-item-text {
         flex-grow: 1;
-        word-break: break-all;
+        word-break: break-word;
+        -webkit-hyphens: auto;
+        -moz-hyphens: auto;
+        -ms-hyphens: auto;
+        hyphens: auto;
       }
 
       #dropdownItems .dropdown-item .dropdown-item-icon {
@@ -298,7 +304,8 @@
       <iron-scroll-threshold
         id="dropdownScroller"
         on-lower-threshold="_loadMoreItems"
-        lower-threshold="[[_lowerThreshold()]]">
+        lower-threshold="[[_lowerThreshold()]]"
+        lower-triggered="{{_dropdownItemsNearBottom}}">
         <iron-list
           id="dropdownItems"
           items="[[filteredItems]]"
@@ -315,10 +322,20 @@
           </template>
         </iron-list>
       </iron-scroll-threshold>
+
       <template is="dom-if" if="[[noVisibleItems]]">
         <div id="dropdown-no-items">[[emptyList]]</div>
       </template>
-      <slot name="status"></slot>
+
+      <template is="dom-if" if="[[lazyLoadResource]]">
+        <slot name="status">
+          <div class="dropdown-paging">
+            [[_lazyLoadCurrentPage]] - [[_lazyLoadTotalPages]]
+            <paper-spinner active></paper-spinner>
+          </div>
+        </slot>
+      </template>
+
     </casper-select-dropdown>
   </template>
   <script>
@@ -342,6 +359,7 @@
            */
           items: {
             type: Object,
+            value: () => [],
             observer: '_itemsChanged'
           },
           /**
@@ -618,7 +636,7 @@
            * CSS class applied to the Highlight Template Tag
            * @type {String}
            */
-          highlightTtemplateClass: {
+          highlightTemplateClass: {
             type: String,
             value: 'dropdown-item-highlight'
           },
@@ -680,29 +698,49 @@
             type: Boolean,
             value: false
           },
-
-
-
-          lazyLoad: {
-            type: Boolean,
-            value: false
+          /**
+           * JSON API resource to use in the web socket calls
+           * @type {String}
+           */
+          lazyLoadResource: {
+            type: String
           },
-          lazyLoadResource: String,
+          /**
+           * The fields that will be used to construct the query to the JSON API.
+           * @type {String}
+           */
+          lazyLoadFilterFields: Array,
+          /**
+           * The number of records to fetch each time the socket is called.
+           * @type {Number}
+           */
           lazyLoadPageSize: {
             type: Number,
             value: 100
           },
+          /**
+           * The URL parameter name for the search filters.
+           * @type {String}
+           */
+          lazyLoadFilterAttr: {
+            type: String,
+            value: 'filter'
+          },
+          /**
+           * The URL parameter name for the number of records per "page".
+           * @type {String}
+           */
           lazyLoadPageSizeAttr: {
             type: String,
             value: 'page[size]'
           },
+          /**
+           * The URL parameter name for the current "page".
+           * @type {String}
+           */
           lazyLoadPageNumberAttr: {
             type: String,
             value: 'page[number]'
-          },
-          _lazyLoadCurrentPage: {
-            type: Number,
-            value: 1
           }
         };
       }
@@ -719,7 +757,6 @@
 
         this.$.dropdown.addEventListener('opened-changed', event => this._onOpenedChanged(event));
         this.$.dropdown.addEventListener('iron-overlay-canceled', event => this._cancelOverlay(event));
-        this.$.dropdownScroller.addEventListener('lower-trigger', event => this._loadMoreItems(event));
 
         window.select = this;
       }
@@ -767,8 +804,15 @@
         this.searchInput.setAttribute('readonly', '');
       }
 
-      _unsetValueInInput() {
-        this.searchInput.value = "";
+      _unsetValueInInput () {
+        if (!this.searchInput) return;
+
+        if (!this.lazyLoadResource) {
+          this.searchInput.value = '';
+        } else {
+          this.searchInput.value = this._lastQuery || '';
+        }
+
         this.searchInput.removeAttribute('readonly');
         this._resizeItemListHeight();
         if ( typeof this._tempFiltering !== "undefined" ) {
@@ -796,7 +840,7 @@
       }
 
       _selectedItemsChanged ( newSelectedItems ) {
-        this._shouldLabelFloat = this._inputHasValue();
+        this._shouldLabelFloat = this._multiSelectionHasItems();
 
         let listItems = this.multiSelectionTagsElementParent
           ? this.multiSelectionTagsElementParent
@@ -874,13 +918,15 @@
             this.openDropdown();
           }
         } else {
-          this.searchInput.blur();
+          if (!this.lazyLoadResource) {
+            this.searchInput.blur();
+          }
         }
       }
 
       _itemClicked (event) {
 
-        let classList = event.path.find(element => element.classList.contains('dropdown-item')).classList;
+        let classList = (event.composedPath()).find(element => element.classList.contains('dropdown-item')).classList;
 
         if ( !this.selectionEnabled || classList.contains('dropdown-item-disabled') ) {
           event.preventDefault();
@@ -1009,7 +1055,7 @@
                   this.lastSelectedItems = [...this.lastSelectedItems, this.$.dropdownItems.items[0]];
 
                   this._clearValueInput();
-                  this.filterItems();
+                  this.lazyLoadResource ? this._loadMoreItems() : this.filterItems();
                 }
               }
             }
@@ -1054,7 +1100,6 @@
             break;
           default:
             event.stopPropagation();
-            return;
         }
 
         // The value-changed event is not fired for iron-input elements.
@@ -1184,8 +1229,10 @@
 
       _itemsChanged ( newItems ) {
 
-        if ( newItems == undefined || newItems == null || newItems && newItems.length == 0 ) {
+        if ( newItems == undefined || newItems == null ) {
           return this._destroy();
+        } else if ( newItems && newItems.length === 0 ) {
+          this.filteredItems = [];
         }
 
         if ( newItems && newItems && newItems.length > 0 && newItems[0].constructor === String) {
@@ -1223,7 +1270,7 @@
             this.disableItems( currentDisabledItemsKeys );
           }
         } else {
-          if ( typeof this._ignoreDisabledItems === "undefined" || this._ignoreDisabledItems === false ) {
+          if (typeof this._ignoreDisabledItems === "undefined" || this._ignoreDisabledItems === false ) {
             Polymer.RenderStatus.afterNextRender(this.searchInput, () => {
               this._unsetValueInInput();
             });
@@ -1474,14 +1521,21 @@
         event.stopImmediatePropagation();
 
         if ( typeof this._debounceFilterItemsTimeout === "undefined" ) {
-          this.filterItems(event.detail.value);
+          this.lazyLoadResource && this.filtering
+            ? this._loadMoreItems()
+            : this.filterItems(event.detail.value);
+
           this._debounceFilterItemsTimeout = setTimeout(() => {}, 0);
           return;
         } else {
           clearTimeout(this._debounceFilterItemsTimeout);
         }
 
-        this._debounceFilterItemsTimeout = setTimeout(() => this.filterItems(), 0);
+        this._debounceFilterItemsTimeout = setTimeout(() => {
+          this.lazyLoadResource && this.filtering
+            ? this._loadMoreItems()
+            : this.filterItems(event.detail.value);
+          }, 0);
       }
 
       filterItems (query, clearLast = false) {
@@ -1513,7 +1567,6 @@
           let highlightTemplate = this._highlightTemplate();
 
           this._lastQueryNormalized = queryNormalized;
-          this.filteredItems = [];
 
           if ( this.template ) {
             this._filterTemplateHTML = this._filterTemplateHTML || document.createElement('div');
@@ -1521,11 +1574,12 @@
 
           for ( let [key, item] of Object.entries(this.items) ) {
 
-            let itemValue = this._itemColumn(item);
-
+            let itemValue;
             if ( this.template ) {
               this._filterTemplateHTML.innerHTML = this._itemColumn(item);
-              itemValue = this._filterTemplateHTML.textContent || this._filterTemplateHTML.innerText || itemValue;
+              itemValue = this._filterTemplateHTML.textContent || this._filterTemplateHTML.innerText || item[this.itemColumn];
+            } else {
+              itemValue = item[this.itemColumn];
             }
 
             let itemNormalized = itemValue.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -1554,6 +1608,7 @@
                     itemText += itemValue.substring(modifications[m][1] + 1, modifications[m+1][0]);
                   }
                 }
+                itemText = this._listItemInnerHTML(itemText);
               }
 
               let newItem = JSON.parse(JSON.stringify( item ));
@@ -1569,12 +1624,27 @@
           //if ( filteredItems.length === 0 ) {
             //this.searchInput.value = _lastQuery;
           //}
-          this.filteredItems = [];
-          this.filteredItems = filteredItems;
+
+
+          if (this.lazyLoadResource && this._appendNewFilteredItems) {
+            this.push('filteredItems', ...this._appendNewFilteredItems.map(newFilteredItem => {
+              return filteredItems.find(filteredItem => filteredItem[this.keyColumn] === newFilteredItem[this.keyColumn]);
+            }));
+            this._appendNewFilteredItems = undefined;
+          } else {
+            this.filteredItems = [];
+            this.filteredItems = filteredItems;
+          }
         } else {
+          if (this.lazyLoadResource && this._appendNewFilteredItems) {
+            this.push('filteredItems', ...this._appendNewFilteredItems);
+            this._appendNewFilteredItems = undefined;
+          } else {
+            this.filteredItems = [];
+            this.filteredItems = this.items;
+          }
+
           this._lastQueryNormalized = queryNormalized;
-          this.filteredItems = [];
-          this.filteredItems = this.items;
         }
 
         if ( this.resizeOnFilter ) {
@@ -1657,6 +1727,8 @@
             }
           }
         }
+
+        this.$.dropdown.notifyResize();
       }
 
       _setValue () {
@@ -1676,7 +1748,7 @@
       }
 
       _highlightTemplate () {
-        return { begin: `<${this.highlightTemplateTag} class="${this.highlightTtemplateClass}">`, end: `</${this.highlightTemplateTag}>` };
+        return { begin: `<${this.highlightTemplateTag} class="${this.highlightTemplateClass}">`, end: `</${this.highlightTemplateTag}>` };
       }
 
       _simpleArrayEqual (arr1, arr2) {
@@ -1742,14 +1814,14 @@
         return textContainer.outerHTML + iconContainer.outerHTML;
       }
 
-      _inputHasValue () {
-        return this._selectedItems &&
-          ((this.multiSelection && this._selectedItems.length > 0) ||
-          (!this.multiSelection && Object.entries(this._selectedItems).length > 0));
+      _multiSelectionHasItems () {
+        return this.multiSelection
+          && this._selectedItems
+          && this._selectedItems.length > 0;
       }
 
       _searchInputBlurred () {
-        this._shouldLabelFloat = this.searchInput.value || this._inputHasValue();
+        this._shouldLabelFloat = this.searchInput.value || this._multiSelectionHasItems();
       }
 
       _searchInputFocused () {
@@ -1760,32 +1832,92 @@
         return this.lazyLoadResource ? null : this._defaultLowerThreshold;
       }
 
-      _loadMoreItems () {
-        this.ironScrollThreshold =
-          this.ironScrollThreshold ||
-          this.shadowRoot.querySelector('iron-scroll-threshold');
+      _loadMoreItems (event) {
+        const triggeredFromSearch = event === undefined;
 
-        const items = this.items || [];
+        if (
+          triggeredFromSearch
+          && this.searchInput
+          && this.searchInput.value === this._lastQuery
+        ) return;
 
-        const resourceUrlParams = [
-          `${this.lazyLoadPageSizeAttr}=${this.lazyLoadPageSize}`,
-          `${this.lazyLoadPageNumberAttr}=${this._lazyLoadCurrentPage}`
-        ];
+        this.ironScrollThreshold = this.ironScrollThreshold || this.shadowRoot.querySelector('iron-scroll-threshold');
 
-        const resourceUrl = `${this.lazyLoadResource}?${resourceUrlParams.join('&')}`;
+        // This means the filter has changed therefore you reset the page number and the disabled flag.
+        if (triggeredFromSearch || !this._lazyLoadCurrentPage) {
+          this._lazyLoadCurrentPage = 0;
+          this._lazyLoadDisabled = false;
+        }
+
+        if (this._lazyLoadDisabled) return;
+
+        // Build the resource url.
+        const resourceUrl = `${this.lazyLoadResource}?${this._loadMoreItemsUrl().join('&')}`;
 
         app.socket.getData(resourceUrl, 10000, socketResponse => {
           if (socketResponse.errors) return;
 
-          this.items = [
-            ...items,
-            ...socketResponse.data.map(item => this.lazyLoadCallback(item))
-          ];
+          // Calculate the total number of existing pages.
+          this._lazyLoadTotalPages = Math.ceil(parseInt(socketResponse.meta.total) / this.lazyLoadPageSize);
 
-          // Increment the current page number and reset the scroll event listeners.
-          this._lazyLoadCurrentPage++;
+          // Either replace the all items list if it was triggered by a search or append if it's a scroll event.
+          const currentItems = this.items || [];
+          const formattedResultItems = socketResponse.data.map(item => this.lazyLoadCallback(item));
+          const resultItems = triggeredFromSearch
+            ? formattedResultItems
+            : [...currentItems, ...formattedResultItems];
+
+          // This is used so that we can push the elements into the list instead of directly replacing them
+          // which would cause scrolling to the element's top.
+          if (!triggeredFromSearch && this._lazyLoadCurrentPage !== 1) {
+            this._appendNewFilteredItems = formattedResultItems;
+          }
+
+          // Reset the scroll event listeners.
           this.ironScrollThreshold.clearTriggers();
+
+          // Save the last query in case there are no results;
+          if (triggeredFromSearch && socketResponse.data.length === 0) {
+            this._lastQuery = this.searchInput.value;
+          }
+
+          this.items = resultItems;
+
+          // Open the dropdown if this was triggered from a search event.
+          if (triggeredFromSearch && socketResponse.data.length > 0 && !this.opened) {
+            this.openDropdown();
+          }
+
+          // Disable further socket queries if this was triggered from scroll and there are no more results.
+          if (!triggeredFromSearch && this._lazyLoadCurrentPage === this._lazyLoadTotalPages) {
+            this._lazyLoadDisabled = true;
+          }
         });
+      }
+
+      _loadMoreItemsUrl () {
+        this._lazyLoadCurrentPage++;
+
+        let resourceUrlParams = [
+          'totals=1',
+          `${this.lazyLoadPageSizeAttr}=${this.lazyLoadPageSize}`,
+          `${this.lazyLoadPageNumberAttr}=${this._lazyLoadCurrentPage}`
+        ];
+
+        if (this.searchInput && this.searchInput.value && this.lazyLoadFilterFields) {
+          // Build the filter parameters - filter="description ~* 'search' OR name ~* 'search'".
+          const resourceFilterParams = this.lazyLoadFilterFields
+            .map(field => `${field} ~* '${this.searchInput.value}'`)
+            .join(' OR ');
+
+          resourceUrlParams.push(`filter="${resourceFilterParams}"`);
+        }
+
+        return resourceUrlParams;
+      }
+
+      _lazyLoadResourceChanged () {
+        this.smartFilter = false;
       }
     }
 
