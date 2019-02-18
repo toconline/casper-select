@@ -64,31 +64,31 @@
 
       .casper-multi-selection .list-items .list-item {
         color: #333;
-        height: 18px;
         display: flex;
         outline: none;
         padding: 0 5px;
         font-size: 12px;
         cursor: default;
+        min-height: 18px;
         user-select: none;
-        line-height: 18px;
         border-radius: 3px;
         align-items: center;
         margin: 0 4px 4px 0;
-        justify-content: center;
+        line-height: initial;
         border: 1px solid #6F6262;
       }
 
       .casper-multi-selection .list-items .list-item button {
         padding: 0;
-        width: 10px;
         height: 10px;
         color: white;
         border: none;
         display: flex;
         outline: none;
+        flex-shrink: 0;
         font-size: 12px;
         cursor: pointer;
+        flex-basis: 10px;
         background: none;
         margin-right: 5px;
         user-select: none;
@@ -108,8 +108,8 @@
       }
 
       .casper-multi-selection .list-items .list-item button iron-icon {
-        width: 100%;
-        height: 100%;
+        width: 10px;
+        height: 10px;
       }
 
       .casper-multi-selection .list-item-input {
@@ -172,8 +172,9 @@
 
       #measureDropdownItem,
       #dropdownItems .dropdown-item {
-        display: flex;
         padding: 5px;
+        display: flex;
+        font-size: 12px;
         min-height: 30px;
         align-items: center;
         box-sizing: border-box;
@@ -335,8 +336,8 @@
       <template is="dom-if" if="[[lazyLoadResource]]">
         <slot name="status">
           <div class="dropdown-paging">
-            [[_lazyLoadCurrentPage]] - [[_lazyLoadTotalPages]]
-            <paper-spinner active></paper-spinner>
+            [[_dropdownPagingInfo(items, _lazyLoadTotalResults)]]
+            <paper-spinner active="[[_lazyLoadFetching]]"></paper-spinner>
           </div>
         </slot>
       </template>
@@ -711,7 +712,8 @@
            * @type {String}
            */
           lazyLoadResource: {
-            type: String
+            type: String,
+            observer: '_lazyLoadResourceChanged'
           },
           /**
            * The fields that will be used to construct the query to the JSON API.
@@ -1836,61 +1838,67 @@
       _loadMoreItems (event) {
         const triggeredFromSearch = event === undefined;
 
-        // Used to not trigger an additional query for a repeated search for when the user opens the select.
-        if (
-          triggeredFromSearch &&
-          this.searchInput &&
-          this.searchInput.value === this._lastQuery
-        ) return;
+        // This is used to display the initial values without pre-fetching any data.
+        if (!this._alreadyInitialized && this.initialId) return this.filterItems();
 
-        this.ironScrollThreshold = this.ironScrollThreshold || this.shadowRoot.querySelector('iron-scroll-threshold');
+        Polymer.RenderStatus.afterNextRender(this.searchInput, () => {
+          // Used to not trigger an additional query for a repeated search for when the user opens the select.
+          if (triggeredFromSearch && this.searchInput && this.searchInput.value === this._lastQuery) return;
 
-        // This means the filter has changed therefore you reset the page number and the disabled flag.
-        if (triggeredFromSearch || !this._lazyLoadCurrentPage) {
-          this._lazyLoadCurrentPage = 0;
-          this._lazyLoadDisabled = false;
-        }
+          this.ironScrollThreshold =
+            this.ironScrollThreshold ||
+            this.shadowRoot.querySelector('iron-scroll-threshold');
 
-        if (this._lazyLoadDisabled) return;
-
-        app.socket.getData(this._loadMoreItemsUrl(), this.lazyLoadTimeout, socketResponse => {
-          if (socketResponse.errors) return;
-
-          // Calculate the total number of existing pages.
-          this._lazyLoadTotalPages = Math.ceil(parseInt(socketResponse.meta.total) / this.lazyLoadPageSize);
-
-          // Either replace the all items list if it was triggered by a search or append if it's a scroll event.
-          const currentItems = this.items || [];
-          const formattedResultItems = socketResponse.data.map(item => this.lazyLoadCallback(item));
-          const resultItems = triggeredFromSearch
-            ? formattedResultItems
-            : [...currentItems, ...formattedResultItems];
-
-          // This is used so that we can push the elements into the list instead of directly replacing them
-          // which would cause scrolling to the element's top.
-          if (!triggeredFromSearch && this._lazyLoadCurrentPage !== 1) {
-            this._appendNewFilteredItems = formattedResultItems;
+          // This means the filter has changed therefore you reset the page number and the disabled flag.
+          if (triggeredFromSearch || !this._lazyLoadCurrentPage) {
+            this._lazyLoadCurrentPage = 0;
+            this._lazyLoadDisabled = false;
           }
 
-          // Reset the scroll event listeners.
-          this.ironScrollThreshold.clearTriggers();
+          if (this._lazyLoadDisabled) return;
 
-          // Save the last query in case there are no results;
-          if (triggeredFromSearch && socketResponse.data.length === 0) {
-            this._lastQuery = this.searchInput.value;
-          }
+          // Used to display a spinner in the UI.
+          this._lazyLoadFetching = true;
 
-          this.items = resultItems;
+          app.socket.getData(this._loadMoreItemsUrl(), this.lazyLoadTimeout, socketResponse => {
+            this._lazyLoadFetching = false;
 
-          // Open the dropdown if this was triggered from a search event.
-          if (triggeredFromSearch && socketResponse.data.length > 0 && !this.opened) {
-            this.openDropdown();
-          }
+            if (socketResponse.errors) return;
 
-          // Disable further socket queries if this was triggered from scroll and there are no more results.
-          if (!triggeredFromSearch && this._lazyLoadCurrentPage === this._lazyLoadTotalPages) {
-            this._lazyLoadDisabled = true;
-          }
+            // Calculate the total number of existing pages.
+            this._lazyLoadTotalResults = socketResponse.meta.total;
+
+            // Either replace the all items list if it was triggered by a search or append if it's a scroll event.
+            const currentItems = this.items || [];
+            const formattedResultItems = socketResponse.data.map(item => this.lazyLoadCallback(item));
+            const resultItems = triggeredFromSearch
+              ? formattedResultItems
+              : [...currentItems, ...formattedResultItems];
+
+            // This is used so that we can push the elements into the list instead of directly replacing them
+            // which would cause iron-list to scroll to its top.
+            if (!triggeredFromSearch && this._lazyLoadCurrentPage !== 1) {
+              this._appendNewFilteredItems = formattedResultItems;
+            }
+
+            // Reset the scroll event listeners.
+            this.ironScrollThreshold.clearTriggers();
+
+            // Save the last query in case there are no results;
+            if (triggeredFromSearch && socketResponse.data.length === 0) {
+              this._lastQuery = this.searchInput.value;
+            }
+
+            this.items = resultItems;
+
+            // Open the dropdown if this was triggered from a search event.
+            if (triggeredFromSearch && socketResponse.data.length > 0 && !this.opened) {
+              this.openDropdown();
+            }
+
+            // Disable further socket queries if this was triggered from scroll and there are no more results.
+            this._lazyLoadDisabled = !triggeredFromSearch && this._lazyLoadCurrentPage === this._lazyLoadTotalPages;
+          });
         });
       }
 
@@ -1904,11 +1912,7 @@
           `${this.lazyLoadPageNumberAttr}=${this._lazyLoadCurrentPage}`
         ];
 
-        if (
-          this.searchInput &&
-          this.searchInput.value &&
-          this.lazyLoadFilterFields
-        ) {
+        if (this.searchInput && this.searchInput.value && this.lazyLoadFilterFields) {
           // Build the filter parameters - filter="description ~* 'search' OR name ~* 'search'".
           const filterParams = this.lazyLoadFilterFields.map(field => `${field} ~* '${this.searchInput.value}'`).join(' OR ');
 
@@ -1928,12 +1932,11 @@
       _initialIdChanged () {
         Polymer.RenderStatus.afterNextRender(this.searchInput, () => {
           if (
+            this.items &&
+            this.items.length > 0 &&
             !this._alreadyInitialized &&
-            this.initialId !== undefined &&
-            this.filteredItems &&
-            this.filteredItems.length > 0
+            this.initialId !== undefined
           ) {
-
             // Convert the initial id into an array to avoid code complexity on single selection.
             const initialIds = this.initialId.constructor === Array ? this.initialId : [this.initialId];
             let foundInitialIds = 0;
@@ -1957,6 +1960,10 @@
             if (!this.multiSelection) this._setValueInInput();
           }
         });
+      }
+
+      _dropdownPagingInfo (items, totalItemsLength) {
+        return `A mostrar ${items.length} de ${totalItemsLength}`;
       }
     }
 
