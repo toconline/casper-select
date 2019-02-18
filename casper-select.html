@@ -741,6 +741,22 @@
           lazyLoadPageNumberAttr: {
             type: String,
             value: 'page[number]'
+          },
+          /**
+           * The parameter name and value to make the socket respond with the totals metadata.
+           * @type {String}
+           */
+          lazyLoadMetadataAttr: {
+            type: String,
+            value: 'totals=1'
+          },
+          /**
+           * Number of milliseconds until a socket call times out.
+           * @type {Number}
+           */
+          lazyLoadTimeout: {
+            type: Number,
+            value: 1500
           }
         };
       }
@@ -1835,10 +1851,11 @@
       _loadMoreItems (event) {
         const triggeredFromSearch = event === undefined;
 
+        // Used to not trigger an additional query for a repeated search for when the user opens the select.
         if (
-          triggeredFromSearch
-          && this.searchInput
-          && this.searchInput.value === this._lastQuery
+          triggeredFromSearch &&
+          this.searchInput &&
+          this.searchInput.value === this._lastQuery
         ) return;
 
         this.ironScrollThreshold = this.ironScrollThreshold || this.shadowRoot.querySelector('iron-scroll-threshold');
@@ -1851,10 +1868,7 @@
 
         if (this._lazyLoadDisabled) return;
 
-        // Build the resource url.
-        const resourceUrl = `${this.lazyLoadResource}?${this._loadMoreItemsUrl().join('&')}`;
-
-        app.socket.getData(resourceUrl, 10000, socketResponse => {
+        app.socket.getData(this._loadMoreItemsUrl(), this.lazyLoadTimeout, socketResponse => {
           if (socketResponse.errors) return;
 
           // Calculate the total number of existing pages.
@@ -1898,22 +1912,28 @@
       _loadMoreItemsUrl () {
         this._lazyLoadCurrentPage++;
 
+        // Apply the metadata, page size and current page number.
         let resourceUrlParams = [
-          'totals=1',
+          this.lazyLoadMetadataAttr,
           `${this.lazyLoadPageSizeAttr}=${this.lazyLoadPageSize}`,
           `${this.lazyLoadPageNumberAttr}=${this._lazyLoadCurrentPage}`
         ];
 
-        if (this.searchInput && this.searchInput.value && this.lazyLoadFilterFields) {
+        if (
+          this.searchInput &&
+          this.searchInput.value &&
+          this.lazyLoadFilterFields
+        ) {
           // Build the filter parameters - filter="description ~* 'search' OR name ~* 'search'".
-          const resourceFilterParams = this.lazyLoadFilterFields
-            .map(field => `${field} ~* '${this.searchInput.value}'`)
-            .join(' OR ');
+          const filterParams = this.lazyLoadFilterFields.map(field => `${field} ~* '${this.searchInput.value}'`).join(' OR ');
 
-          resourceUrlParams.push(`filter="${resourceFilterParams}"`);
+          resourceUrlParams.push(`${this.lazyLoadFilterAttr}="${filterParams}"`);
         }
 
-        return resourceUrlParams;
+        // Check if the resource URL already contains a ? which indicates some parameters were already given.
+        return this.lazyLoadResource.includes('?')
+          ? `${this.lazyLoadResource}&${resourceUrlParams.join('&')}`
+          : `${this.lazyLoadResource}?${resourceUrlParams.join('&')}`;
       }
 
       _lazyLoadResourceChanged () {
