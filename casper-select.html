@@ -170,10 +170,10 @@
         display: none;
       }
 
+      #measureDropdownItem,
       #dropdownItems .dropdown-item {
         display: flex;
         padding: 5px;
-
         min-height: 30px;
         align-items: center;
         box-sizing: border-box;
@@ -241,6 +241,11 @@
         cursor: not-allowed;
         background-color: #DEDEDE;
         @apply --casper-select-dropdown-item-disabled;
+      }
+
+      #measureDropdownItem {
+        opacity: 0;
+        position: absolute;
       }
     </style>
 
@@ -335,8 +340,10 @@
           </div>
         </slot>
       </template>
-
     </casper-select-dropdown>
+
+    <!--Element used to measure the longest dropdown item-->
+    <div id="measureDropdownItem"></div>
   </template>
   <script>
     "use strict";
@@ -1718,10 +1725,16 @@
           // This means the dropdown will try to ajust to the container's width.
             this.$.dropdown.style.width = `${this.targetElement.offsetWidth}px`;
         } else if (this.targetElement && this.items && this.items.length > 0) {
-          // The width will take into account the longest item.
-          const longestItem = Math.max(...this.items.map(item => item[this.itemColumn].length));
+          // Fetch the item which has the most characters.
+          const longestItem = this.items.reduce((previousItem, nextItem) => {
+            return nextItem[this.itemColumn].length > previousItem[this.itemColumn].length ? nextItem : previousItem
+          });
 
-          this.$.dropdown.style.width = `${Math.max(this.targetElement.offsetWidth, longestItem * this.listItemWidth)}px`;
+          this.$.measureDropdownItem.innerText = longestItem[this.itemColumn];
+
+          // Use the highest width between the container or the measure element's current width plus the 14px icon, the
+          // 8px container's padding (4px on both sides) and some additional 10px margin.
+          this.$.dropdown.style.width = `${Math.max(this.targetElement.offsetWidth, this.$.measureDropdownItem.offsetWidth + 32)}px`;
         }
 
         this.$.dropdown.notifyResize();
