@@ -424,7 +424,8 @@
            * @type {Object}
            */
           initialId: {
-            type: Object
+            type: Object,
+            observer: '_initialIdChanged'
           },
           /**
            * Dynamic Search Input - Internal Paper Input Property
@@ -1686,35 +1687,6 @@
         if (this.listHeight) {
           this.$.dropdownItems.style.height = this.listHeight;
         }
-
-        if (this.searchInput
-            && !this._alreadyInitialized
-            && this.initialId !== undefined
-            && this.filteredItems
-            && this.filteredItems.length > 0) {
-
-          // Convert the initial id into an array to avoid code complexity on single selection.
-          const initialIds = this.initialId.constructor === Array ? this.initialId : [this.initialId];
-          let foundInitialIds = 0;
-
-          for ( let [key, item] of Object.entries(this.items) ) {
-            initialIds.forEach(initialId => {
-              if (initialId.toString() === item[this.keyColumn].toString()) {
-                this.$.dropdownItems.selectItem( this.$.dropdownItems.items[key] );
-                foundInitialIds++;
-              }
-            });
-
-            if (foundInitialIds >= initialIds.length) break;
-          }
-
-          // Mark this flag to not run this code section in the future
-          this._alreadyInitialized = true;
-          this._selectedItems = this.lastSelectedItems = JSON.parse(JSON.stringify(this.ironListSelectedItems));
-
-          // Only set the value in the search input for single-selection.
-          if (!this.multiSelection) this._setValueInInput();
-        }
       }
 
       _resizeItemListWidth () {
@@ -1726,9 +1698,9 @@
             this.$.dropdown.style.width = `${this.targetElement.offsetWidth}px`;
         } else if (this.targetElement && this.items && this.items.length > 0) {
           // Fetch the item which has the most characters.
-          const longestItem = this.items.reduce((previousItem, nextItem) => {
-            return nextItem[this.itemColumn].length > previousItem[this.itemColumn].length ? nextItem : previousItem
-          });
+          const longestItem = this.items.reduce((previousItem, nextItem) => (
+            nextItem[this.itemColumn].length > previousItem[this.itemColumn].length ? nextItem : previousItem
+          ));
 
           this.$.measureDropdownItem.innerText = longestItem[this.itemColumn];
 
@@ -1951,6 +1923,40 @@
 
       _lazyLoadResourceChanged () {
         this.smartFilter = false;
+      }
+
+      _initialIdChanged () {
+        Polymer.RenderStatus.afterNextRender(this.searchInput, () => {
+          if (
+            !this._alreadyInitialized &&
+            this.initialId !== undefined &&
+            this.filteredItems &&
+            this.filteredItems.length > 0
+          ) {
+
+            // Convert the initial id into an array to avoid code complexity on single selection.
+            const initialIds = this.initialId.constructor === Array ? this.initialId : [this.initialId];
+            let foundInitialIds = 0;
+
+            for (let [key, item] of Object.entries(this.items)) {
+              initialIds.forEach(initialId => {
+                if (initialId.toString() === item[this.keyColumn].toString()) {
+                  this.$.dropdownItems.selectItem(this.$.dropdownItems.items[key]);
+                  foundInitialIds++;
+                }
+              });
+
+              if (foundInitialIds >= initialIds.length) break;
+            }
+
+            // Mark this flag to not run this code section in the future
+            this._alreadyInitialized = true;
+            this._selectedItems = this.lastSelectedItems = JSON.parse(JSON.stringify(this.ironListSelectedItems));
+
+            // Only set the value in the search input for single-selection.
+            if (!this.multiSelection) this._setValueInInput();
+          }
+        });
       }
     }
 
