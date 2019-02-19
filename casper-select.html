@@ -265,6 +265,7 @@
         position: relative;
         align-items: center;
         justify-content: center;
+        box-shadow: 0 -5px 5px -5px #CCC;
       }
     </style>
 
@@ -328,8 +329,7 @@
       <iron-scroll-threshold
         id="dropdownScroller"
         on-lower-threshold="_loadMoreItems"
-        lower-threshold="[[_lowerThreshold()]]"
-        lower-triggered="{{_dropdownItemsNearBottom}}">
+        lower-threshold="[[_lowerThreshold()]]">
         <iron-list
           id="dropdownItems"
           items="[[filteredItems]]"
@@ -355,12 +355,12 @@
       </template>
 
       <template is="dom-if" if="[[lazyLoadResource]]">
-        <slot name="status">
-          <div class="dropdown-paging">
-            [[_dropdownPagingInfo(items, _lazyLoadTotalResults)]]
-          </div>
-        </slot>
+        <div class="dropdown-paging">
+          [[_dropdownPagingInfo(items, _lazyLoadTotalResults)]]
+        </div>
       </template>
+
+      <slot name="status"></slot>
     </casper-select-dropdown>
 
     <!--Element used to measure the longest dropdown item-->
@@ -787,7 +787,15 @@
           lazyLoadTimeout: {
             type: Number,
             value: 1500
-          }
+          },
+          /**
+           * Message that appears while waiting for the socket to respond.
+           * @type {String}
+           */
+          lazyLoadFetchingMessage: {
+            type: String,
+            value: 'A carregar...'
+          },
         };
       }
 
@@ -1707,7 +1715,7 @@
       _resizeItemListHeight (useFiltered = true) {
         let items = useFiltered ? this.filteredItems : this.items;
         if (this.listHeight) {
-          this.$.dropdownItems.style.height = this.listHeight;
+          this.$.dropdownItems.style.maxHeight = this.listHeight;
         }
       }
 
@@ -1933,9 +1941,11 @@
         ];
 
         if (this.searchInput && this.searchInput.value && this.lazyLoadFilterFields) {
+          // Escape the characters that have a special meaning in regular expressions.
+          const escapedSearchInputValue = this.searchInput.value.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+
           // Build the filter parameters - filter="description ~* 'search' OR name ~* 'search'".
           const filterParams = this.lazyLoadFilterFields.map(field => `${field} ~* '${this.searchInput.value}'`).join(' OR ');
-
           resourceUrlParams.push(`${this.lazyLoadFilterAttr}="${filterParams}"`);
         }
 
