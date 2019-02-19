@@ -142,6 +142,7 @@
       #dropdown-no-items {
         display: flex;
         font-size: 13px;
+        padding: 15px 0;
         color: lightgrey;
         align-items: center;
         flex-direction: column;
@@ -1941,11 +1942,11 @@
         ];
 
         if (this.searchInput && this.searchInput.value && this.lazyLoadFilterFields) {
-          // Escape the characters that have a special meaning in regular expressions.
-          const escapedSearchInputValue = this.searchInput.value.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+          // Escape the % characters that have a special meaning in the ILIKE clause.
+          const escapedSearchInputValue = this.searchInput.value.replace(/[%\\]/g, '\\$&');
 
           // Build the filter parameters - filter="description ~* 'search' OR name ~* 'search'".
-          const filterParams = this.lazyLoadFilterFields.map(field => `${field} ~* '${this.searchInput.value}'`).join(' OR ');
+          const filterParams = this.lazyLoadFilterFields.map(field => `${field} ILIKE '%${escapedSearchInputValue}%'`).join(' OR ');
           resourceUrlParams.push(`${this.lazyLoadFilterAttr}="${filterParams}"`);
         }
 
