@@ -20,7 +20,6 @@
 <link rel="import" href="../polymer/polymer-element.html">
 <link rel="import" href="../paper-input/paper-input.html">
 <link rel="import" href="../casper-icons/casper-icons.html">
-<link rel="import" href="../paper-progress/paper-progress.html">
 <link rel="import" href="../paper-input/paper-input-container.html">
 <link rel="import" href="../iron-scroll-threshold/iron-scroll-threshold.html">
 <link rel="import" href="../iron-overlay-behavior/iron-overlay-behavior.html">
@@ -263,13 +262,9 @@
         color: #737373;
         line-height: 30px;
         font-size: 0.85em;
+        position: relative;
         align-items: center;
-        flex-direction: column;
         justify-content: center;
-      }
-
-      .dropdown-paging paper-progress[hidden] {
-        visibility: hidden;
       }
     </style>
 
@@ -363,7 +358,6 @@
         <slot name="status">
           <div class="dropdown-paging">
             [[_dropdownPagingInfo(items, _lazyLoadTotalResults)]]
-            <paper-progress indeterminate hidden$="[[!_lazyLoadFetching]]"></paper-progress>
           </div>
         </slot>
       </template>
