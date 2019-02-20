@@ -1864,7 +1864,7 @@
       }
 
       _lowerThreshold () {
-        return this.lazyLoadResource ? null : this._defaultLowerThreshold;
+        return this.lazyLoadResource ? this._defaultLowerThreshold : null;
       }
 
       _loadMoreItems (event) {
