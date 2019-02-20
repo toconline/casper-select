@@ -330,8 +330,7 @@
       </template>
       <iron-scroll-threshold
         id="dropdownScroller"
-        on-lower-threshold="_loadMoreItems"
-        lower-threshold="[[_lowerThreshold()]]">
+        on-lower-threshold="_loadMoreItems">
         <iron-list
           id="dropdownItems"
           items="[[filteredItems]]"
@@ -1863,11 +1862,9 @@
         this._shouldLabelFloat = true;
       }
 
-      _lowerThreshold () {
-        return this.lazyLoadResource ? this._defaultLowerThreshold : null;
-      }
-
       _loadMoreItems (event) {
+        if (!this.lazyLoadResource) return;
+
         const triggeredFromSearch = event === undefined;
 
         // This is used to display the initial values without pre-fetching any data.
@@ -1963,6 +1960,12 @@
       }
 
       _lazyLoadResourceChanged () {
+        this.ironScrollThreshold =
+          this.ironScrollThreshold ||
+          this.shadowRoot.querySelector('iron-scroll-threshold');
+
+        this.ironScrollThreshold.toggleScrollListener(!!this.lazyLoadResource);
+
         this.smartFilter = false;
       }
 
