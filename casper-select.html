@@ -969,14 +969,16 @@
       }
 
       selfInputClicked () {
-        if ( this.items && this.items.length > 0 && !this.disabled ) {
-          if ( !this.opened ) {
-            this.openDropdown();
-          }
-        } else {
-          if (!this.lazyLoadResource) {
-            this.searchInput.blur();
-          }
+        // Do nothing if the input is already open.
+        if (this.opened) return;
+
+        // Open the dropdown in case of lazy loading because the items actively change according to the search input.
+        if (this.lazyLoadResource && !this.disabled) {
+          this.openDropdown();
+        } else if (!this.lazyLoadResource) {
+          this.items && this.items.length > 0 && !this.disabled
+            ? this.openDropdown()
+            : this.searchInput.blur();
         }
       }
 
@@ -1875,9 +1877,10 @@
           // Used to not trigger an additional query for a repeated search for when the user opens the select.
           if (triggeredFromSearch && this.searchInput && this.searchInput.value === this._lastQuery) return;
 
-          this.ironScrollThreshold =
-            this.ironScrollThreshold ||
-            this.shadowRoot.querySelector('iron-scroll-threshold');
+          // Flag that states if this is the first time fetching data or not.
+          this._lazyLoadFirstFetch = this._lazyLoadFirstFetch !== undefined ? this._lazyLoadFirstFetch : true;
+
+          this.ironScrollThreshold = this.ironScrollThreshold || this.shadowRoot.querySelector('iron-scroll-threshold');
 
           // This means the filter has changed therefore you reset the page number and the disabled flag.
           if (triggeredFromSearch || !this._lazyLoadCurrentPage) {
@@ -1887,13 +1890,11 @@
 
           if (this._lazyLoadDisabled) return;
 
-          // Used to display a spinner in the UI.
-          this._lazyLoadFetching = true;
-
           app.socket.getData(this._loadMoreItemsUrl(), this.lazyLoadTimeout, socketResponse => {
-            this._lazyLoadFetching = false;
-
-            if (socketResponse.errors) return;
+            if (socketResponse.errors) {
+              this.dispatchEvent(new CustomEvent('casper-select-lazy-loaded-error'));
+              return;
+            }
 
             // Calculate the total number of existing pages.
             this._lazyLoadTotalResults = parseInt(socketResponse.meta.total);
@@ -1928,6 +1929,10 @@
 
             // Disable further socket queries if there are no more results.
             this._lazyLoadDisabled = this.items.length === this._lazyLoadTotalResults;
+
+            // Dispatch an event with the flag stating if it's the first fetch or not.
+            this.dispatchEvent(new CustomEvent('casper-select-lazy-loaded', { detail: { initialLoad: this._lazyLoadFirstFetch }}));
+            this._lazyLoadFirstFetch = false;
           });
         });
       }
