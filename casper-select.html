@@ -155,7 +155,7 @@
         height: 75px;
       }
 
-       #dropdownScroller {
+       #ironScrollThreshold {
         overflow: auto;
         -ms-overflow-style: -ms-autohiding-scrollbar;
         max-height: var(--casper-combo-box-overlay-max-height, 80vh);
@@ -329,13 +329,13 @@
         </paper-input>
       </template>
       <iron-scroll-threshold
-        id="dropdownScroller"
+        id="ironScrollThreshold"
         on-lower-threshold="_loadMoreItems">
         <iron-list
           id="dropdownItems"
           items="[[filteredItems]]"
           hidden$="[[noVisibleItems]]"
-          scroll-target="dropdownScroller"
+          scroll-target="ironScrollThreshold"
           selected-items="{{ironListSelectedItems}}"
           class$="[[_computedDisabledSelect(disabled)]]">
           <template>
@@ -374,10 +374,6 @@
 
       static get is () {
         return 'casper-select';
-      }
-
-      static get _defaultLowerThreshold () {
-        return 100;
       }
 
       static get properties () {
@@ -446,8 +442,7 @@
            * @type {Object}
            */
           initialId: {
-            type: Object,
-            observer: '_initialIdChanged'
+            type: Object
           },
           /**
            * Dynamic Search Input - Internal Paper Input Property
@@ -725,6 +720,14 @@
            * @type {Boolean}
            */
           noClearIcon: {
+            type: Boolean,
+            value: false
+          },
+          /**
+           * Upon destruction of the select, do not set the initial id to undefined
+           * @type {Boolean}
+           */
+          keepInitialIdOnDestroy: {
             type: Boolean,
             value: false
           },
@@ -1266,7 +1269,11 @@
         this._selectedItems = [];
         this._clearSearch();
         this._alreadyInitialized = false;
-        this.initialId = undefined;
+
+        if (!this.keepInitialIdOnDestroy) {
+          this.initialId = undefined;
+        }
+
         if (this.opened) {
           this.closeDropdown();
         }
@@ -1293,10 +1300,8 @@
         }
 
         if ( newItems && newItems && newItems.length > 0 && newItems[0].constructor === String) {
-          let itemsConvertedToObject = [];
-          newItems.forEach( (element, index) => itemsConvertedToObject.push({id: index, name: element}));
-          // The following object change will trigger the observer again, so we do an early return
-          this.items = itemsConvertedToObject;
+          // The following object change will trigger the observer again, so we do an early return.
+          this.items = newItems.map((element, index) => ({ id: index, name: element }));
           return;
         }
         if ( this.template && this.items.length > 0 ) {
@@ -1320,6 +1325,7 @@
           Polymer.RenderStatus.afterNextRender(this.searchInput, () => {
             this._resizeItemListHeight();
             this._resizeItemListWidth();
+            this._applyInitialId();
           });
           if ( typeof this._ignoreDisabledItems === "undefined" || this._ignoreDisabledItems === false ) {
             const currentDisabledItemsKeys = this.disabledItemsKeys;
@@ -1877,8 +1883,6 @@
           // Flag that states if this is the first time fetching data or not.
           this._lazyLoadFirstFetch = this._lazyLoadFirstFetch !== undefined ? this._lazyLoadFirstFetch : true;
 
-          this.ironScrollThreshold = this.ironScrollThreshold || this.shadowRoot.querySelector('iron-scroll-threshold');
-
           // This means the filter has changed therefore you reset the page number and the disabled flag.
           if (triggeredFromSearch || !this._lazyLoadCurrentPage) {
             this._lazyLoadCurrentPage = 0;
@@ -1910,7 +1914,7 @@
             }
 
             // Reset the scroll event listeners.
-            this.ironScrollThreshold.clearTriggers();
+            this.$.ironScrollThreshold.clearTriggers();
 
             // Save the last query in case there are no results;
             if (triggeredFromSearch && socketResponse.data.length === 0) {
@@ -1960,16 +1964,12 @@
       }
 
       _lazyLoadResourceChanged () {
-        this.ironScrollThreshold =
-          this.ironScrollThreshold ||
-          this.shadowRoot.querySelector('iron-scroll-threshold');
-
-        this.ironScrollThreshold.toggleScrollListener(!!this.lazyLoadResource);
+        this.$.ironScrollThreshold.toggleScrollListener(!!this.lazyLoadResource);
 
         this.smartFilter = false;
       }
 
-      _initialIdChanged () {
+      _applyInitialId () {
         Polymer.RenderStatus.afterNextRender(this.searchInput, () => {
           if (
             this.items &&
@@ -2002,11 +2002,25 @@
         });
       }
 
-      _dropdownPagingInfo (items, totalItemsLength) {
+      _dropdownPagingInfo (items, lazyLoadTotalResults) {
+        const itemsLength = items ? items.length : 0;
         // This is to display the initial information if the user specified an initial id and didn't begin filtering.
-        totalItemsLength = totalItemsLength !== undefined ? totalItemsLength : items.length;
+        lazyLoadTotalResults = lazyLoadTotalResults !== undefined ? lazyLoadTotalResults : itemsLength;
 
-        return `${items.length} de ${totalItemsLength}`;
+        return `${itemsLength} de ${lazyLoadTotalResults}`;
+      }
+
+      resetLazyLoad () {
+        this.items = undefined;
+        this._lastQuery = undefined;
+        this._lazyLoadCurrentPage = 0;
+        this._lazyLoadTotalResults = 0;
+        this._lazyLoadDisabled = false;
+        this._lazyLoadFirstFetch = true;
+
+        this.$.ironScrollThreshold.toggleScrollListener(!!this.lazyLoadResource);
+        this.$.ironScrollThreshold.checkScrollThresholds();
+        this.$.ironScrollThreshold.clearTriggers();
       }
     }
 
