@@ -820,7 +820,7 @@
       }
 
       _cancelOverlay (e) {
-        if  ( e.detail.path.includes(this.searchInput) ) {
+        if  ( e.composedPath().includes(this.searchInput) ) {
           e.preventDefault();
         }
       }
