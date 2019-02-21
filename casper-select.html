@@ -2019,8 +2019,15 @@
         this._lazyLoadFirstFetch = true;
 
         this.$.ironScrollThreshold.toggleScrollListener(!!this.lazyLoadResource);
-        this.$.ironScrollThreshold.checkScrollThresholds();
         this.$.ironScrollThreshold.clearTriggers();
+
+        if (!this._ironScrollThresholdInitialized) {
+          // Store the first iron-scroll-threshold to avoid multiple calls on the first time.
+          this._ironScrollThresholdInitialized = true;
+        } else {
+          // In this case, manually invoke the fetch method with a parameter to simulate the event.
+          this._loadMoreItems(true);
+        }
       }
     }
 
