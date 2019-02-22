@@ -907,7 +907,7 @@
         if ( this.multiSelection && this.multiSelectionTags ) {
           if ( listItems ) {
             this._removeDynamicListSelectedValues(listItems);
-            if ( newSelectedItems !== undefined && newSelectedItems.length > 0 ) {
+            if ( newSelectedItems && newSelectedItems.length > 0 ) {
               newSelectedItems.forEach( el => {
                 const item = document.createElement('div');
                 const itemButton = document.createElement('button');
@@ -1263,11 +1263,11 @@
       }
 
       _destroy () {
-        this.ironListSelectedItems = null;
-        this.filteredItems = [];
-        this.lastSelectedItems = [];
-        this._selectedItems = [];
+        this.ironListSelectedItems = [];
         this._clearSearch();
+        this.filteredItems = [];
+        this._selectedItems = [];
+        this.lastSelectedItems = [];
         this._alreadyInitialized = false;
 
         if (!this.keepInitialIdOnDestroy) {
