@@ -20,6 +20,7 @@
 <link rel="import" href="../polymer/polymer-element.html">
 <link rel="import" href="../paper-input/paper-input.html">
 <link rel="import" href="../casper-icons/casper-icons.html">
+<link rel="import" href="../paper-spinner/paper-spinner.html">
 <link rel="import" href="../paper-input/paper-input-container.html">
 <link rel="import" href="../iron-scroll-threshold/iron-scroll-threshold.html">
 <link rel="import" href="../iron-overlay-behavior/iron-overlay-behavior.html">
@@ -153,6 +154,16 @@
       #dropdown-no-items iron-icon {
         width: 75px;
         height: 75px;
+      }
+
+      #dropdown-spinner {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        position: absolute;
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(255, 255, 255, 0.3);
       }
 
        #ironScrollThreshold {
@@ -348,6 +359,14 @@
         </iron-list>
       </iron-scroll-threshold>
 
+      <!--Spinner that appears when the select is loading more items-->
+      <template is="dom-if" if="[[_lazyLoadFetching]]">
+        <div id="dropdown-spinner">
+          <paper-spinner active></paper-spinner>
+        </div>
+      </template>
+
+      <!--Placeholder for the cases when there are no items-->
       <template is="dom-if" if="[[noVisibleItems]]">
         <div id="dropdown-no-items">
           <iron-icon icon="casper-icons:empty-data"></iron-icon>
@@ -355,6 +374,7 @@
         </div>
       </template>
 
+      <!--Displays the number of visible results vs the total-->
       <template is="dom-if" if="[[lazyLoadResource]]">
         <div class="dropdown-paging">
           [[_dropdownPagingInfo(items, _lazyLoadTotalResults)]]
@@ -791,14 +811,6 @@
           lazyLoadTimeout: {
             type: Number,
             value: 1500
-          },
-          /**
-           * Message that appears while waiting for the socket to respond.
-           * @type {String}
-           */
-          lazyLoadFetchingMessage: {
-            type: String,
-            value: 'A carregar...'
           },
         };
       }
@@ -1744,8 +1756,8 @@
           this.$.measureDropdownItem.innerText = longestItem[this.itemColumn];
 
           // Use the highest width between the container or the measure element's current width plus the 14px icon, the
-          // 8px container's padding (4px on both sides) and some additional 10px margin.
-          this.$.dropdown.style.width = `${Math.max(this.targetElement.offsetWidth, this.$.measureDropdownItem.offsetWidth + 32)}px`;
+          // 8px container's padding (4px on both sides) and some additional 20px margin.
+          this.$.dropdown.style.width = `${Math.max(this.targetElement.offsetWidth, this.$.measureDropdownItem.offsetWidth + 42)}px`;
         }
 
         this.$.dropdown.notifyResize();
@@ -1891,7 +1903,15 @@
 
           if (this._lazyLoadDisabled) return;
 
+          // Only show the spinner if the request takes longer than 250ms.
+          if (this._lazyLoadFetchingTimeout) clearTimeout(this._lazyLoadFetchingTimeout);
+          this._lazyLoadFetchingTimeout = setTimeout(() => { this._lazyLoadFetching = true; }, 100);
+
           app.socket.getData(this._loadMoreItemsUrl(), this.lazyLoadTimeout, socketResponse => {
+            // Hide the spinner and clear the timeout to show it.
+            this._lazyLoadFetching = false;
+            clearTimeout(this._lazyLoadFetchingTimeout);
+
             if (socketResponse.errors) {
               this.dispatchEvent(new CustomEvent('casper-select-lazy-loaded-error'));
               return;
@@ -1953,7 +1973,7 @@
           const escapedSearchInputValue = this.searchInput.value.replace(/[%\\]/g, '\\$&');
 
           // Build the filter parameters - filter="description ~* 'search' OR name ~* 'search'".
-          const filterParams = this.lazyLoadFilterFields.map(field => `${field} ILIKE '%${escapedSearchInputValue}%'`).join(' OR ');
+          const filterParams = this.lazyLoadFilterFields.map(field => `${field}::TEXT ILIKE '%${escapedSearchInputValue}%'`).join(' OR ');
           resourceUrlParams.push(`${this.lazyLoadFilterAttr}="${filterParams}"`);
         }
 
