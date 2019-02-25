@@ -907,7 +907,7 @@
         if ( this.multiSelection && this.multiSelectionTags ) {
           if ( listItems ) {
             this._removeDynamicListSelectedValues(listItems);
-            if ( newSelectedItems && newSelectedItems.length > 0 ) {
+            if ( newSelectedItems !== undefined && newSelectedItems.length > 0 ) {
               newSelectedItems.forEach( el => {
                 const item = document.createElement('div');
                 const itemButton = document.createElement('button');
