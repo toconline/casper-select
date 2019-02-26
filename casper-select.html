@@ -156,16 +156,6 @@
         height: 75px;
       }
 
-      #dropdown-spinner {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        position: absolute;
-        align-items: center;
-        justify-content: center;
-        background-color: rgba(255, 255, 255, 0.5);
-      }
-
        #ironScrollThreshold {
         overflow: auto;
         -ms-overflow-style: -ms-autohiding-scrollbar;
@@ -270,7 +260,7 @@
         position: absolute;
       }
 
-      .dropdown-paging {
+      .dropdown-pagination-container {
         padding: 5px;
         display: flex;
         color: #737373;
@@ -282,7 +272,16 @@
         box-shadow: 0 -5px 5px -5px #CCC;
       }
 
-      .dropdown-paging casper-button {
+      .dropdown-pagination-container .dropdown-pagination {
+        display: flex;
+        align-items: center;
+      }
+
+      .dropdown-pagination-container .dropdown-pagination paper-spinner {
+        margin-left: 10px;
+      }
+
+      .dropdown-pagination-container casper-button {
         margin: 0;
       }
     </style>
@@ -364,13 +363,6 @@
         </iron-list>
       </iron-scroll-threshold>
 
-      <!--Spinner that appears when the select is loading more items-->
-      <template is="dom-if" if="[[_lazyLoadFetching]]">
-        <div id="dropdown-spinner">
-          <paper-spinner active></paper-spinner>
-        </div>
-      </template>
-
       <!--Placeholder for the cases when there are no items-->
       <template is="dom-if" if="[[noVisibleItems]]">
         <div id="dropdown-no-items">
@@ -379,12 +371,16 @@
         </div>
       </template>
 
-      <template is="dom-if" if="[[_shouldDisplayPagingAndOrClose(multiSelection, lazyLoadResource)]]">
-        <div class="dropdown-paging">
+      <template is="dom-if" if="[[_shouldDisplayPaginationAndOrClose(multiSelection, lazyLoadResource)]]">
+        <div class="dropdown-pagination-container">
           <!--Displays the number of visible results vs the total-->
-          <template is="dom-if" if="[[lazyLoadResource]]">
-            [[_dropdownPagingInfo(items, _lazyLoadTotalResults, _lazyLoadInitialState)]]
-          </template>
+          <div class="dropdown-pagination">
+            <template is="dom-if" if="[[lazyLoadResource]]">
+              [[_dropdownPaginationInfo(items, _lazyLoadTotalResults, _lazyLoadInitialState)]]
+              <paper-spinner active$="[[_shouldDisplaySpinner(_lazyLoadFetching, _lazyLoadTyping)]]">
+              </paper-spinner>
+            </template>
+          </div>
 
           <!--Button to close the dropdown when multi-selection is enabled-->
           <template is="dom-if" if="[[multiSelection]]">
@@ -844,7 +840,7 @@
 
         this._translations = {
           multiSelectionCloseButton: 'Concluído',
-          lazyLoadInitialState: 'A mostrar os valores iniciais. Escreva para começar a pesquisar.'
+          lazyLoadInitialState: 'Escreva para começar a pesquisar.'
         };
 
         window.select = this;
@@ -1624,6 +1620,10 @@
         if (this._debounceFilterItemsTimeout) {
           clearTimeout(this._debounceFilterItemsTimeout);
           this._debounceFilterItemsTimeout = setTimeout(filterItemsCallback, filterItemsTimer);
+
+          if (!!this.lazyLoadResource && this.filtering) {
+            this._lazyLoadTyping = true;
+          }
         } else {
           // Call the method straight away and fake a timeout.
           filterItemsCallback();
@@ -1899,6 +1899,8 @@
       }
 
       _loadMoreItems (event) {
+        this._lazyLoadTyping = false;
+
         if (!this.lazyLoadResource) return;
 
         const triggeredFromSearch = event === undefined;
@@ -1924,20 +1926,19 @@
 
           if (this._lazyLoadDisabled) return;
 
+          this._lazyLoadFetching = true;
           this._lazyLoadRequestId = app.socket.getData(this._loadMoreItemsUrl(), this.lazyLoadTimeout, (socketResponse, request) => {
             // Ignore previous requests to prevent race conditions.
             if (this._lazyLoadRequestId !== request.invokeId) return;
 
-            // Hide the spinner.
+            // Hide the spinner and reset the scroll triggers.
             this._lazyLoadFetching = false;
+            this.$.ironScrollThreshold.clearTriggers();
 
             if (socketResponse.errors) {
               this.dispatchEvent(new CustomEvent('casper-select-lazy-loaded-error'));
               return;
             }
-
-            // Reset the scroll event listeners.
-            this.$.ironScrollThreshold.clearTriggers();
 
             // Calculate the total number of existing pages.
             this._lazyLoadTotalResults = parseInt(socketResponse.meta.total);
@@ -2043,7 +2044,7 @@
         });
       }
 
-      _dropdownPagingInfo (items, lazyLoadTotalResults, lazyLoadInitialState) {
+      _dropdownPaginationInfo (items, lazyLoadTotalResults, lazyLoadInitialState) {
         if (lazyLoadInitialState) return this._translations.lazyLoadInitialState;
 
         if (items) return `${items.length} de ${lazyLoadTotalResults}`;
@@ -2062,11 +2063,11 @@
 
         if (this._ironScrollThresholdInitialized) {
           // In this case, manually invoke the fetch method with a parameter to simulate the event.
-          this._loadMoreItems();
+          this._loadMoreItems(true);
         }
       }
 
-      _shouldDisplayPagingAndOrClose (multiSelection, lazyLoadResource) {
+      _shouldDisplayPaginationAndOrClose (multiSelection, lazyLoadResource) {
         return multiSelection || !!lazyLoadResource;
       }
 
@@ -2077,6 +2078,10 @@
         this._lazyLoadInitialState = existingInitialId && !this._lazyLoadAlreadyFiltered;
 
         return this._lazyLoadInitialState;
+      }
+
+      _shouldDisplaySpinner (lazyLoadFetching, lazyLoadTyping) {
+        return lazyLoadFetching || lazyLoadTyping;
       }
     }
 
