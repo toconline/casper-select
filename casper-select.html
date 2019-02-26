@@ -163,7 +163,7 @@
         position: absolute;
         align-items: center;
         justify-content: center;
-        background-color: rgba(255, 255, 255, 0.3);
+        background-color: rgba(255, 255, 255, 0.5);
       }
 
        #ironScrollThreshold {
@@ -271,14 +271,19 @@
       }
 
       .dropdown-paging {
+        padding: 5px;
         display: flex;
         color: #737373;
         line-height: 30px;
         font-size: 0.85em;
         position: relative;
         align-items: center;
-        justify-content: center;
+        justify-content: space-between;
         box-shadow: 0 -5px 5px -5px #CCC;
+      }
+
+      .dropdown-paging casper-button {
+        margin: 0;
       }
     </style>
 
@@ -374,10 +379,19 @@
         </div>
       </template>
 
-      <!--Displays the number of visible results vs the total-->
-      <template is="dom-if" if="[[lazyLoadResource]]">
+      <template is="dom-if" if="[[_shouldDisplayPagingAndOrClose(multiSelection, lazyLoadResource)]]">
         <div class="dropdown-paging">
-          [[_dropdownPagingInfo(items, _lazyLoadTotalResults)]]
+          <!--Displays the number of visible results vs the total-->
+          <template is="dom-if" if="[[lazyLoadResource]]">
+            [[_dropdownPagingInfo(items, _lazyLoadTotalResults, _lazyLoadInitialState)]]
+          </template>
+
+          <!--Button to close the dropdown when multi-selection is enabled-->
+          <template is="dom-if" if="[[multiSelection]]">
+            <casper-button size="s" on-click="closeDropdown">
+              [[_translations.multiSelectionCloseButton]]
+            </casper-button>
+          </template>
         </div>
       </template>
 
@@ -827,6 +841,11 @@
 
         this.$.dropdown.addEventListener('opened-changed', event => this._onOpenedChanged(event));
         this.$.dropdown.addEventListener('iron-overlay-canceled', event => this._cancelOverlay(event));
+
+        this._translations = {
+          multiSelectionCloseButton: 'Concluído',
+          lazyLoadInitialState: 'A mostrar os valores iniciais. Escreva para começar a pesquisar.'
+        };
 
         window.select = this;
       }
@@ -1595,15 +1614,16 @@
       _debounceFilterItems (event) {
         event.stopImmediatePropagation();
 
+        const filterItemsTimer = this.lazyLoadResource ? 250 : 50;
         const filterItemsCallback = () => {
-          this.lazyLoadResource && this.filtering
+          !!this.lazyLoadResource && this.filtering
             ? this._loadMoreItems()
             : this.filterItems(event.detail.value);
         };
 
         if (this._debounceFilterItemsTimeout) {
           clearTimeout(this._debounceFilterItemsTimeout);
-          this._debounceFilterItemsTimeout = setTimeout(filterItemsCallback, 150);
+          this._debounceFilterItemsTimeout = setTimeout(filterItemsCallback, filterItemsTimer);
         } else {
           // Call the method straight away and fake a timeout.
           filterItemsCallback();
@@ -1883,10 +1903,13 @@
 
         const triggeredFromSearch = event === undefined;
 
-        // This is used to display the initial values without pre-fetching any data.
-        if (!this._alreadyInitialized && this.initialId) return this.filterItems();
+        // Store the first iron-scroll-threshold to avoid multiple calls on the first time.
+        if (!triggeredFromSearch) this._ironScrollThresholdInitialized = true;
 
         Polymer.RenderStatus.afterNextRender(this.searchInput, () => {
+          // This is used to display the initial values without pre-fetching any data.
+          if (this._isDisplayingInitialState()) return this.filterItems();
+
           // Used to not trigger an additional query for a repeated search for when the user opens the select.
           if (triggeredFromSearch && this.searchInput && this.searchInput.value === this._lastQuery) return;
 
@@ -1901,22 +1924,20 @@
 
           if (this._lazyLoadDisabled) return;
 
-          // Only show the spinner if the request takes longer than 250ms.
-          if (this._lazyLoadFetchingTimeout) clearTimeout(this._lazyLoadFetchingTimeout);
-          this._lazyLoadFetchingTimeout = setTimeout(() => { this._lazyLoadFetching = true; }, 100);
-
           this._lazyLoadRequestId = app.socket.getData(this._loadMoreItemsUrl(), this.lazyLoadTimeout, (socketResponse, request) => {
-
+            // Ignore previous requests to prevent race conditions.
             if (this._lazyLoadRequestId !== request.invokeId) return;
 
-            // Hide the spinner and clear the timeout to show it.
+            // Hide the spinner.
             this._lazyLoadFetching = false;
-            clearTimeout(this._lazyLoadFetchingTimeout);
 
             if (socketResponse.errors) {
               this.dispatchEvent(new CustomEvent('casper-select-lazy-loaded-error'));
               return;
             }
+
+            // Reset the scroll event listeners.
+            this.$.ironScrollThreshold.clearTriggers();
 
             // Calculate the total number of existing pages.
             this._lazyLoadTotalResults = parseInt(socketResponse.meta.total);
@@ -1931,9 +1952,6 @@
             if (!triggeredFromSearch && this._lazyLoadCurrentPage !== 1) {
               this._appendNewFilteredItems = formattedResultItems;
             }
-
-            // Reset the scroll event listeners.
-            this.$.ironScrollThreshold.clearTriggers();
 
             // Save the last query in case there are no results;
             if (triggeredFromSearch && socketResponse.data.length === 0) {
@@ -1989,20 +2007,24 @@
       }
 
       _applyInitialId () {
-        Polymer.RenderStatus.afterNextRender(this.searchInput, () => {
+        Polymer.RenderStatus.afterNextRender(this, () => {
+          // For those cases where the initial-id has not been mapped to the properties yet.
+          const initialId = this.initialId || this.getAttribute('initial-id');
+
           if (
-            this.items &&
-            this.items.length > 0 &&
-            !this._alreadyInitialized &&
-            this.initialId !== undefined
+            initialId !== null
+            && initialId !== undefined
+            && this.items
+            && this.items.length > 0
+            && !this._alreadyInitialized
           ) {
             // Convert the initial id into an array to avoid code complexity on single selection.
-            const initialIds = this.initialId.constructor === Array ? this.initialId : [this.initialId];
+            const initialIds = initialId.constructor === Array ? initialId : [initialId];
             let foundInitialIds = 0;
 
             for (let [key, item] of Object.entries(this.items)) {
-              initialIds.forEach(initialId => {
-                if (initialId.toString() === item[this.keyColumn].toString()) {
+              initialIds.forEach(id => {
+                if (id === item[this.keyColumn].toString()) {
                   this.$.dropdownItems.selectItem(this.$.dropdownItems.items[key]);
                   foundInitialIds++;
                 }
@@ -2021,32 +2043,40 @@
         });
       }
 
-      _dropdownPagingInfo (items, lazyLoadTotalResults) {
-        const itemsLength = items ? items.length : 0;
-        // This is to display the initial information if the user specified an initial id and didn't begin filtering.
-        lazyLoadTotalResults = lazyLoadTotalResults !== undefined ? lazyLoadTotalResults : itemsLength;
+      _dropdownPagingInfo (items, lazyLoadTotalResults, lazyLoadInitialState) {
+        if (lazyLoadInitialState) return this._translations.lazyLoadInitialState;
 
-        return `${itemsLength} de ${lazyLoadTotalResults}`;
+        if (items) return `${items.length} de ${lazyLoadTotalResults}`;
       }
 
       resetLazyLoad () {
         this.items = undefined;
         this._lastQuery = undefined;
         this._lazyLoadCurrentPage = 0;
-        this._lazyLoadTotalResults = 0;
         this._lazyLoadDisabled = false;
         this._lazyLoadFirstFetch = true;
+        this._lazyLoadTotalResults = undefined;
 
         this.$.ironScrollThreshold.toggleScrollListener(!!this.lazyLoadResource);
         this.$.ironScrollThreshold.clearTriggers();
 
-        if (!this._ironScrollThresholdInitialized) {
-          // Store the first iron-scroll-threshold to avoid multiple calls on the first time.
-          this._ironScrollThresholdInitialized = true;
-        } else {
+        if (this._ironScrollThresholdInitialized) {
           // In this case, manually invoke the fetch method with a parameter to simulate the event.
-          this._loadMoreItems(true);
+          this._loadMoreItems();
         }
+      }
+
+      _shouldDisplayPagingAndOrClose (multiSelection, lazyLoadResource) {
+        return multiSelection || !!lazyLoadResource;
+      }
+
+      _isDisplayingInitialState () {
+        const existingInitialId = this.getAttribute('initial-id') !== null;
+
+        this._lazyLoadAlreadyFiltered = this._lazyLoadAlreadyFiltered || this.searchInput.value !== '';
+        this._lazyLoadInitialState = existingInitialId && !this._lazyLoadAlreadyFiltered;
+
+        return this._lazyLoadInitialState;
       }
     }
 
