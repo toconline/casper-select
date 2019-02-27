@@ -472,7 +472,8 @@
            * @type {Object}
            */
           initialId: {
-            type: Object
+            type: Object,
+            observer: '_initialIdChanged'
           },
           /**
            * Dynamic Search Input - Internal Paper Input Property
@@ -1352,7 +1353,7 @@
           Polymer.RenderStatus.afterNextRender(this.searchInput, () => {
             this._resizeItemListHeight();
             this._resizeItemListWidth();
-            this._applyInitialId();
+            this._initialIdChanged();
           });
           if ( typeof this._ignoreDisabledItems === "undefined" || this._ignoreDisabledItems === false ) {
             const currentDisabledItemsKeys = this.disabledItemsKeys;
@@ -2013,7 +2014,7 @@
         this.smartFilter = false;
       }
 
-      _applyInitialId () {
+      _initialIdChanged () {
         Polymer.RenderStatus.afterNextRender(this, () => {
           // For those cases where the initial-id has not been mapped to the properties yet.
           const initialId = this.initialId || this.getAttribute('initial-id');
@@ -2031,7 +2032,7 @@
 
             for (let [key, item] of Object.entries(this.items)) {
               initialIds.forEach(id => {
-                if (id === item[this.keyColumn].toString()) {
+                if (id.toString() === item[this.keyColumn].toString()) {
                   this.$.dropdownItems.selectItem(this.$.dropdownItems.items[key]);
                   foundInitialIds++;
                 }
