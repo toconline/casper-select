@@ -888,6 +888,11 @@
         this.filtering = false;
         this.searchInput.value = this._selectedItems ? this._selectedItems[this.itemColumn] : '';
         this.searchInput.setAttribute('readonly', '');
+
+        // This is required because there are times where the paper-input label does not float
+        // even if the input has value. It's always better than try to guess a value for setTimeout.
+        this.searchInput.focus();
+        this.searchInput.blur();
       }
 
       _unsetValueInInput () {
