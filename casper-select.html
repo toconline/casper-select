@@ -1854,7 +1854,13 @@
       _clearSelectIconClicked (event) {
         event.stopImmediatePropagation();
 
-        this.deselectAllItems();
+        if (!!this.lazyLoadResource) {
+          this._lastQuery = '';
+          this.resetLazyLoad(true);
+        } else {
+          this.deselectAllItems();
+        }
+
         if (this.searchInput) this.searchInput.blur();
       }
 
@@ -2050,13 +2056,13 @@
         if (items) return `${items.length} de ${lazyLoadTotalResults}`;
       }
 
-      resetLazyLoad () {
+      resetLazyLoad (internalReset = false) {
         this.items = undefined;
         this._lastQuery = undefined;
         this._lazyLoadCurrentPage = 0;
         this._lazyLoadDisabled = false;
-        this._lazyLoadFirstFetch = true;
         this._lazyLoadTotalResults = undefined;
+        this._lazyLoadFirstFetch = !internalReset;
 
         this.$.ironScrollThreshold.toggleScrollListener(!!this.lazyLoadResource);
         this.$.ironScrollThreshold.clearTriggers();
