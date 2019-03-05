@@ -1918,9 +1918,11 @@
         if (!this.lazyLoadResource) return;
 
         const triggeredFromSearch = event === undefined;
-
-        // Store the first iron-scroll-threshold to avoid multiple calls on the first time.
-        if (!triggeredFromSearch) this._ironScrollThresholdInitialized = true;
+        // Ignore the first iron-scroll-threshold.
+        if (event && event.type === 'lower-threshold' && !this._ironScrollThresholdInitialized) {
+          this._ironScrollThresholdInitialized = true;
+          return;
+        }
 
         Polymer.RenderStatus.afterNextRender(this.searchInput, () => {
           // This is used to display the initial values without pre-fetching any data.
@@ -2075,11 +2077,7 @@
 
         this.$.ironScrollThreshold.toggleScrollListener(!!this.lazyLoadResource);
         this.$.ironScrollThreshold.clearTriggers();
-
-        if (this._ironScrollThresholdInitialized) {
-          // In this case, manually invoke the fetch method with a parameter to simulate the event.
-          this._loadMoreItems(true);
-        }
+        this._loadMoreItems(true);
       }
 
       _shouldDisplayPaginationAndOrClose (multiSelection, lazyLoadResource) {
