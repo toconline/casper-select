@@ -315,7 +315,7 @@
             id="searchSelf"
             label="[[label]]"
             disabled="[[disabled]]"
-            on-tap="selfInputClicked"
+            on-click="selfInputClicked"
             no-label-float="[[noLabelFloat]]">
             <div class="input-icons" slot="suffix">
               <!--Only display the first icon if there are selected items-->
@@ -355,7 +355,7 @@
           class$="[[_computedDisabledSelect(disabled)]]">
           <template>
             <div
-              on-tap="_itemClicked"
+              on-click="_itemClicked"
               inner-h-t-m-l="[[_computedItemHtml(item._csHTML)]]"
               class$="dropdown-item [[ _computedItemSelectedClass(selected, index) ]] [[ _computedItemDisabledClass(item.csDisabled) ]]">
             </div>
@@ -821,7 +821,7 @@
            */
           lazyLoadTimeout: {
             type: Number,
-            value: 1500
+            value: 5000
           },
         };
       }
@@ -1179,6 +1179,7 @@
             }
             break;
           case 38: // up
+            if (!this.opened) this.selfInputClicked();
             this._moveSelection('up');
             event.stopPropagation();
             break;
@@ -1188,6 +1189,7 @@
             }
             break;
           case 40: // down
+            if (!this.opened) this.selfInputClicked();
             this._moveSelection('down');
             event.stopPropagation();
             break;
@@ -1974,6 +1976,7 @@
             this.items = resultItems;
 
             // Open the dropdown if this was triggered from a search event.
+            if (triggeredFromSearch) this._selectedIndex = -1;
             if (triggeredFromSearch && !this.opened) {
               this.openDropdown();
             }
