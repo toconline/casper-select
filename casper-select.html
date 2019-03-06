@@ -1374,6 +1374,14 @@
             });
           }
         }
+
+        // This happens after a lazy load with results triggered by a search.
+        if (this._triggerFirstItemSelection) {
+          this._triggerFirstItemSelection = false;
+          this._selectedIndex = 0;
+          this._selectedItems = this.filteredItems[0];
+          this._selectItems();
+        }
       }
 
       enableItems ( enabledItemsKeys ) {
@@ -1970,15 +1978,17 @@
               this._appendNewFilteredItems = formattedResultItems;
             }
 
-            // Save the last query in case there are no results;
-            if (triggeredFromSearch && socketResponse.data.length === 0) {
-              this._lastQuery = this.searchInput.value;
+            // Save the last query in case there are no results.
+            if (triggeredFromSearch && socketResponse.data.length === 0) this._lastQuery = this.searchInput.value;
+
+            // Select the first item that resulted from a search.
+            if (triggeredFromSearch && socketResponse.data.length > 0 && !this.multiSelection) {
+              this._triggerFirstItemSelection = true;
             }
 
             this.items = resultItems;
 
             // Open the dropdown if this was triggered from a search event.
-            if (triggeredFromSearch) this._selectedIndex = -1;
             if (triggeredFromSearch && !this.opened) {
               this.openDropdown();
             }
