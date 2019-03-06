@@ -772,7 +772,7 @@
           },
           /**
            * The fields that will be used to construct the query to the JSON API.
-           * @type {String}
+           * @type {Array}
            */
           lazyLoadFilterFields: Array,
           /**
@@ -2007,8 +2007,22 @@
           // Escape the % characters that have a special meaning in the ILIKE clause.
           const escapedSearchInputValue = this.searchInput.value.replace(/[%\\]/g, '\\$&');
 
-          // Build the filter parameters - filter="description ~* 'search' OR name ~* 'search'".
-          const filterParams = this.lazyLoadFilterFields.map(field => `${field}::TEXT ILIKE '%${escapedSearchInputValue}%'`).join(' OR ');
+          // Build the filter parameters.
+          const filterParams = this.lazyLoadFilterFields.map(filterField => {
+            if (filterField.constructor === String) {
+              return `${filterField}::TEXT ILIKE '%${escapedSearchInputValue}%'`;
+            }
+
+            if (filterField.constructor === Object && filterField.field && filterField.filterType) {
+              switch (filterField.filterType) {
+                case 'exact': return `${filterField.field}::TEXT ILIKE '${escapedSearchInputValue}'`;
+                case 'endsWith': return `${filterField.field}::TEXT ILIKE '%${escapedSearchInputValue}'`;
+                case 'contains': return `${filterField.field}::TEXT ILIKE '%${escapedSearchInputValue}%'`;
+                case 'startsWith': return `${filterField.field}::TEXT ILIKE '${escapedSearchInputValue}%'`;
+              }
+            }
+
+          }).join(' OR ');
           resourceUrlParams.push(`${this.lazyLoadFilterAttr}="${filterParams}"`);
         }
 
