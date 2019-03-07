@@ -174,7 +174,8 @@
       dynamic-align
       no-cancel-on-esc-key
       vertical-align="auto"
-      horizontal-align="auto">
+      horizontal-align="auto"
+      template-style="[[templateStyle]]">
       <slot name="search"></slot>
       <template is="dom-if" if="[[ searchCombo ]]">
         <paper-input tabindex="1" id="searchInput" class="paper-input" no-label-float label="pesquisar..">
@@ -416,7 +417,6 @@
            */
           templateStyle: {
             type: String,
-            observer: '_templateStyleChanged'
           },
           /**
            * Template width per item in px
@@ -1122,19 +1122,6 @@
           this._bindSearchInputListeners();
         } else if ( newSearchInlineValue === false && oldSearchInlineValue !== newSearchInlineValue ) {
           this._unbindSearchInputListeners();
-        }
-      }
-
-      _templateStyleChanged ( newTemplateStyle ) {
-        const shadowRoot = this.shadowRoot;
-        if ( shadowRoot.querySelector('#templateStyle') ) {
-          shadowRoot.querySelector('#templateStyle').remove();
-        }
-        if ( newTemplateStyle !== undefined ) {
-          const templateStyle = document.createElement('style');
-          templateStyle.setAttribute('id', 'templateStyle');
-          templateStyle.textContent = newTemplateStyle;
-          shadowRoot.appendChild(templateStyle);
         }
       }
 

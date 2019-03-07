@@ -194,12 +194,33 @@
         return 'casper-select-dropdown';
       }
 
+      static get properties () {
+        return {
+          templateStyle: {
+            type: String,
+            observer: '_templateStyleChanged'
+          }
+        };
+      }
+
       ready () {
         super.ready();
 
         this.shadowRoot.querySelector('slot').assignedNodes().forEach(assignedNode => {
           this.shadowRoot.appendChild(assignedNode);
         });
+      }
+
+      _templateStyleChanged (newTemplateStyle) {
+        const existingTemplateStyle = this.shadowRoot.querySelector('#templateStyle');
+        if (existingTemplateStyle) existingTemplateStyle.remove();
+
+        if (newTemplateStyle !== undefined) {
+          const templateStyle = document.createElement('style');
+          templateStyle.setAttribute('id', 'templateStyle');
+          templateStyle.textContent = newTemplateStyle;
+          this.shadowRoot.appendChild(templateStyle);
+        }
       }
     }
 
