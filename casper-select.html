@@ -1701,9 +1701,11 @@
               }
             }
 
-            if ( modifications.length > 0 && modifications.length == queryNormalized.length )  {
+            if ((modifications.length > 0 && modifications.length === queryNormalized.length) || this.lazyLoadResource)  {
               let itemText;
-              if ( this.template ) {
+
+              // If the items have a template or it resulted from a wild-card search from the ILIKE's underscore operator.
+              if (this.template || (modifications.length === 0 && this.lazyLoadResource)) {
                 itemText = this._itemColumn(item);
               } else {
                 // Create highlight template tag around matches
@@ -2015,7 +2017,8 @@
 
         if (this.searchInput && this.searchInput.value && this.lazyLoadFilterFields) {
           // Escape the % characters that have a special meaning in the ILIKE clause.
-          const escapedSearchInputValue = this.searchInput.value.replace(/[%\\]/g, '\\$&');
+          let escapedSearchInputValue = this.searchInput.value.replace(/[%\\]/g, '\\$&');
+          escapedSearchInputValue = escapedSearchInputValue.replace(/[&]/g, '_');
 
           // Build the filter parameters.
           const filterParams = this.lazyLoadFilterFields.map(filterField => {
