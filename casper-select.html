@@ -713,11 +713,13 @@
         } else {
           document.body.appendChild(this.$.dropdown);
 
-          if ( typeof this._selectedIndex !== "undefined" ) {
-            setTimeout(() => {
-              this.$.dropdownItems.scrollToIndex( this._selectedIndex );
-            }, 16);
-          }
+          setTimeout(() => {
+            if (this.filteredItems.length > 0) {
+              this._selectedIndex = 0;
+              this._selectedItems = this.filteredItems[0];
+              this._selectItems();
+            }
+          }, 16);
           this.opened = true;
           if ( !this.multiSelection && ( this.searchDynamic || this.searchInline ) ) {
             this._unsetValueInInput();
