@@ -596,6 +596,14 @@
             value: false
           },
           /**
+           * Does not open the select dropdown on arrow press.
+           * @type {Boolean}
+           */
+          noOpenOnArrowKeyPress: {
+            type: Boolean,
+            value: false
+          },
+          /**
            * Upon destruction of the select, do not set the initial id to undefined
            * @type {Boolean}
            */
@@ -730,13 +738,14 @@
       _setValueInInput () {
         this._tempFiltering = this._tempFiltering || this.filtering;
         this.filtering = false;
-        this.searchInput.value = this._selectedItems ? this._selectedItems[this.itemColumn] : '';
-        this.searchInput.setAttribute('readonly', '');
 
-        // This is required because there are times where the paper-input label does not float
-        // even if the input has value. It's always better than try to guess a value for setTimeout.
-        this.searchInput.focus();
-        this.searchInput.blur();
+        const inputValue = this._selectedItems ? this._selectedItems[this.itemColumn] : '';
+        this.searchInput.value = inputValue;
+
+        // Hack because the floating sometimes behaves erratically and overlaps the value.
+        this.searchInput.invalid = true;
+        this.searchInput.invalid = false;
+        this.searchInput.readonly = true;
       }
 
       _unsetValueInInput () {
@@ -748,7 +757,7 @@
           this.searchInput.value = this._lastQuery || '';
         }
 
-        this.searchInput.removeAttribute('readonly');
+        this.searchInput.readonly = false;
         this._resizeItemListHeight();
         if ( typeof this._tempFiltering !== "undefined" ) {
           this.filtering = this._tempFiltering;
@@ -980,10 +989,6 @@
                 if ( this.closeOnSelect ) {
                   this.closeDropdown();
                 }
-              } else {
-                if ( this.searchInput ) {
-                  this.searchInput.blur();
-                }
               }
             } else {
               if ( this.opened ) {
@@ -1023,8 +1028,9 @@
             }
             break;
           case 38: // up
-            if (!this.opened) this.selfInputClicked();
-            this._moveSelection('up');
+            this.opened || this.noOpenOnArrowKeyPress
+              ? this._moveSelection('up')
+              : this.selfInputClicked();
             event.stopPropagation();
             break;
           case 39: // right
@@ -1033,8 +1039,9 @@
             }
             break;
           case 40: // down
-            if (!this.opened) this.selfInputClicked();
-            this._moveSelection('down');
+            this.opened || this.noOpenOnArrowKeyPress
+              ? this._moveSelection('down')
+              : this.selfInputClicked();
             event.stopPropagation();
             break;
           default:
@@ -1746,7 +1753,7 @@
       }
 
       _searchInputBlurred () {
-        this._shouldLabelFloat = this.searchInput.value || this._multiSelectionHasItems();
+        this._shouldLabelFloat = !!this.searchInput.value || this._multiSelectionHasItems();
       }
 
       _searchInputFocused () {
