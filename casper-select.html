@@ -718,6 +718,7 @@
               this._selectedIndex = 0;
               this._selectedItems = this.filteredItems[0];
               this._selectItems();
+              this.$.dropdownItems.scrollToIndex(0);
             }
           }, 16);
           this.opened = true;
