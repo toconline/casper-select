@@ -721,9 +721,12 @@
         } else {
           document.body.appendChild(this.$.dropdown);
 
-          if ( typeof this._selectedIndex !== "undefined" ) {
-            setTimeout(() => { this.$.dropdownItems.scrollToIndex( this._selectedIndex ); }, 16);
-          }
+          setTimeout(() => {
+            this._selectedIndex === undefined
+              ? this.$.dropdownItems.scrollToIndex(0)
+              : this.$.dropdownItems.scrollToIndex(this._selectedIndex);
+          }, 16);
+
           this.opened = true;
           if ( !this.multiSelection && ( this.searchDynamic || this.searchInline ) ) {
             this._unsetValueInInput();
@@ -1028,7 +1031,7 @@
             }
             break;
           case 38: // up
-            this.opened || this.noOpenOnArrowKeyPress
+            this.opened || (this.noOpenOnArrowKeyPress && !this.multiSelection)
               ? this._moveSelection('up')
               : this.selfInputClicked();
             event.stopPropagation();
@@ -1039,7 +1042,7 @@
             }
             break;
           case 40: // down
-            this.opened || this.noOpenOnArrowKeyPress
+            this.opened || (this.noOpenOnArrowKeyPress && !this.multiSelection)
               ? this._moveSelection('down')
               : this.selfInputClicked();
             event.stopPropagation();
