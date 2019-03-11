@@ -957,6 +957,9 @@
       }
 
       _searchInputKeyDownHandler (event) {
+
+        if (!this.opened) this.selfInputClicked();
+
         let key = event.keyCode;
         switch (key) {
           case 8: // backspace
