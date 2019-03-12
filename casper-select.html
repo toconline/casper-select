@@ -1535,7 +1535,8 @@
               itemValue = item[this.itemColumn];
             }
 
-            let itemNormalized = itemValue.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
+            itemValue = itemValue.toString();
+            let itemNormalized = itemValue.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
             let modifications = [];
 
             for ( let term of queryNormalized ) {
@@ -1551,7 +1552,7 @@
               // If the items have a template or it resulted from a wild-card search from the ILIKE's underscore operator.
               if (this.template || (modifications.length === 0 && this.lazyLoadResource)) {
                 itemText = this._itemColumn(item);
-              } else {
+              } else if (modifications.length > 0) {
                 // Create highlight template tag around matches
                 modifications = this._mergeOverlappedRanges(modifications);
                 itemText = itemValue.substring(0, modifications[0][0]);
