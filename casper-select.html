@@ -1664,16 +1664,31 @@
         this.$.dropdown.notifyResize();
       }
 
-      _setValue () {
-        if ( this.disabled ) {
-          this.value = '';
-        } else {
-          if ( this.multiSelection ) {
-            this.value = this._selectedItems ? this._selectedItems.map(item => item[this.keyColumn]).join(this.multiSelectionValueSeperator) : '';
-          } else {
-            this.value = this._selectedItems ? this._selectedItems[this.keyColumn] : '';
-          }
+      setValue (newValue) {
+        if (this.disabled) return;
+
+        // Firstly clear all the items selected.
+        this.deselectAllItems();
+
+        if (newValue) {
+          const valuesToSelect = !this.multiSelection
+            ? [newValue]
+            : newValue.split(this.multiSelectionValueSeperator);
+
+          this._findAndSelectItems(valuesToSelect);
+          this._setValue();
         }
+      }
+
+      _setValue () {
+        if (!this._selectedItems) {
+          this.value = '';
+          return;
+        }
+
+        this.value = !this.multiSelection
+          ? this._selectedItems[this.keyColumn]
+          : this._selectedItems.map(item => item[this.keyColumn]).join(this.multiSelectionValueSeperator);
       }
 
       get selectedItems () {
@@ -1895,7 +1910,6 @@
         Polymer.RenderStatus.afterNextRender(this, () => {
           // For those cases where the initial-id has not been mapped to the properties yet.
           const initialId = this.initialId || this.getAttribute('initial-id');
-          const selectedIndexes = [];
 
           if (
             initialId !== null
@@ -1904,35 +1918,12 @@
             && this.items.length > 0
             && !this._alreadyInitialized
           ) {
+            // Mark this flag to not run this code section in the future.
+            this._alreadyInitialized = true;
+
             // Convert the initial id into an array to avoid code complexity on single selection.
             const initialIds = initialId.constructor === Array ? initialId : [initialId];
-            let foundInitialIds = 0;
-
-            for (let [key, item] of Object.entries(this.items)) {
-              initialIds.forEach(id => {
-                if (id.toString() === item[this.keyColumn].toString()) {
-                  this.$.dropdownItems.selectItem(this.$.dropdownItems.items[key]);
-                  foundInitialIds++;
-                  selectedIndexes.push(parseInt(key));
-                }
-              });
-
-              if (foundInitialIds >= initialIds.length) break;
-            }
-
-            // Mark this flag to not run this code section in the future
-            this._alreadyInitialized = true;
-            this._selectedItems = this.lastSelectedItems = JSON.parse(JSON.stringify(this.ironListSelectedItems));
-
-            if (selectedIndexes.length > 0) {
-              // If there is only one selected item use that index, otherwise use the minimum one.
-              this._selectedIndex = selectedIndexes.length === 1
-                ? selectedIndexes[0]
-                : Math.min(...selectedIndexes);
-            }
-
-            // Only set the value in the search input for single-selection.
-            if (!this.multiSelection) this._setValueInInput();
+            this._findAndSelectItems(initialIds);
           }
         });
       }
@@ -1986,6 +1977,35 @@
             this._loadMoreItems('scroll');
           }
         }, 50);
+      }
+
+      _findAndSelectItems (itemsToSelect) {
+        let foundItems = 0;
+        const selectedIndexes = [];
+
+        for (let [key, item] of Object.entries(this.items)) {
+          itemsToSelect.forEach(itemToSelect => {
+            if (itemToSelect.toString() === item[this.keyColumn].toString()) {
+              foundItems++;
+              selectedIndexes.push(parseInt(key));
+              this.$.dropdownItems.selectItem(this.$.dropdownItems.items[key]);
+            }
+          });
+
+          if (foundItems >= itemsToSelect.length) break;
+        }
+
+        this._selectedItems = this.lastSelectedItems = JSON.parse(JSON.stringify(this.ironListSelectedItems));
+
+        if (selectedIndexes.length > 0) {
+          // If there is only one selected item use that index, otherwise use the minimum one.
+          this._selectedIndex = selectedIndexes.length === 1
+            ? selectedIndexes[0]
+            : Math.min(...selectedIndexes);
+        }
+
+        // Only set the value in the search input for single-selection.
+        if (!this.multiSelection) this._setValueInInput();
       }
     }
 
