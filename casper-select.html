@@ -1665,19 +1665,21 @@
       }
 
       setValue (newValue) {
-        if (this.disabled) return;
+        Polymer.RenderStatus.afterNextRender(this, () => {
+          if (this.disabled) return;
 
-        // Firstly clear all the items selected.
-        this.deselectAllItems();
+          // Firstly clear all the items selected.
+          this.deselectAllItems();
 
-        if (newValue) {
-          const valuesToSelect = !this.multiSelection
-            ? [newValue]
-            : newValue.split(this.multiSelectionValueSeperator);
+          if (newValue) {
+            const valuesToSelect = !this.multiSelection
+              ? [newValue]
+              : newValue.split(this.multiSelectionValueSeperator);
 
-          this._findAndSelectItems(valuesToSelect);
-          this._setValue();
-        }
+            this._findAndSelectItems(valuesToSelect);
+            this._setValue();
+          }
+        });
       }
 
       _setValue () {
