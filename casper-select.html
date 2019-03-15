@@ -1895,6 +1895,7 @@
         Polymer.RenderStatus.afterNextRender(this, () => {
           // For those cases where the initial-id has not been mapped to the properties yet.
           const initialId = this.initialId || this.getAttribute('initial-id');
+          const selectedIndexes = [];
 
           if (
             initialId !== null
@@ -1912,6 +1913,7 @@
                 if (id.toString() === item[this.keyColumn].toString()) {
                   this.$.dropdownItems.selectItem(this.$.dropdownItems.items[key]);
                   foundInitialIds++;
+                  selectedIndexes.push(parseInt(key));
                 }
               });
 
@@ -1921,6 +1923,13 @@
             // Mark this flag to not run this code section in the future
             this._alreadyInitialized = true;
             this._selectedItems = this.lastSelectedItems = JSON.parse(JSON.stringify(this.ironListSelectedItems));
+
+            if (selectedIndexes.length > 0) {
+              // If there is only one selected item use that index, otherwise use the minimum one.
+              this._selectedIndex = selectedIndexes.length === 1
+                ? selectedIndexes[0]
+                : Math.min(...selectedIndexes);
+            }
 
             // Only set the value in the search input for single-selection.
             if (!this.multiSelection) this._setValueInInput();
