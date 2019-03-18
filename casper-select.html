@@ -1669,7 +1669,7 @@
           if (this.disabled) return;
 
           // Firstly clear all the items selected.
-          this.deselectAllItems();
+          this._selectedItems = this.ironListSelectedItems = this.lastSelectedItems = [];
 
           if (newValue) {
             const valuesToSelect = !this.multiSelection
