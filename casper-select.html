@@ -142,10 +142,7 @@
           <iron-input slot="input">
             <div class="list-items" id="dynamicListWithInput">
               <div class="list-item-input">
-                <input
-                  id="searchSelf"
-                  disabled$="[[disabled]]"
-                  on-tap="selfInputClicked" />
+                <input id="searchSelf" disabled$="[[disabled]]" />
               </div>
             </div>
           </iron-input>
@@ -159,7 +156,6 @@
             id="searchSelf"
             label="[[label]]"
             disabled="[[disabled]]"
-            on-click="selfInputClicked"
             no-label-float="[[noLabelFloat]]">
             <div class="input-icons" slot="suffix">
               <!--Only display the first icon if there are selected items-->
@@ -182,10 +178,9 @@
       horizontal-align="auto"
       template-style="[[templateStyle]]">
       <slot name="search"></slot>
-      <template is="dom-if" if="[[ searchCombo ]]">
+      <template is="dom-if" if="[[searchCombo]]">
         <paper-input tabindex="1" id="searchInput" class="paper-input" no-label-float label="pesquisar..">
-          <iron-icon class="iron-icon" icon="casper-icons:search"></iron-icon>
-          <iron-icon id="suffixIcon" class="iron-icon" icon="casper-icons:clear" alt="limpar" title="limpar"></iron-icon>
+          <iron-icon icon="casper-icons:clear" slot="suffix" id="suffixIcon" alt="limpar" title="limpar"></iron-icon>
         </paper-input>
       </template>
       <div id="dropdownScroller">
@@ -678,6 +673,7 @@
       ready () {
         super.ready();
 
+        this._boundSearchInputClicked = this._searchInputClicked.bind(this);
         this._boundSearchInputBlurred = this._searchInputBlurred.bind(this);
         this._boundSearchInputFocused = this._searchInputFocused.bind(this);
         this._boundDebounceFilterItems = this._debounceFilterItems.bind(this);
@@ -879,7 +875,7 @@
         event.stopPropagation();
       }
 
-      selfInputClicked () {
+      _searchInputClicked () {
         // Do nothing if the input is already open.
         if (this.opened) return;
 
@@ -945,7 +941,7 @@
         if ( this.searchInput ) {
           this.searchInput.value = "";
         }
-        const sfxIcon = this.shadowRoot.querySelector("#suffixIcon");
+        const sfxIcon = this.shadowRoot.querySelector('#suffixIcon');
         if ( sfxIcon ) {
           sfxIcon.style.opacity = 0;
           sfxIcon.removeEventListener('click', this._boundClearSearch);
@@ -978,7 +974,7 @@
 
       _searchInputKeyDownHandler (event) {
 
-        if (!this.opened) this.selfInputClicked();
+        if (!this.opened) this._searchInputClicked();
 
         let key = event.keyCode;
         switch (key) {
@@ -1056,7 +1052,7 @@
           case 38: // up
             this.opened || (this.noOpenOnArrowKeyPress && !this.multiSelection)
               ? this._moveSelection('up')
-              : this.selfInputClicked();
+              : this._searchInputClicked();
             event.stopPropagation();
             break;
           case 39: // right
@@ -1067,7 +1063,7 @@
           case 40: // down
             this.opened || (this.noOpenOnArrowKeyPress && !this.multiSelection)
               ? this._moveSelection('down')
-              : this.selfInputClicked();
+              : this._searchInputClicked();
             event.stopPropagation();
             break;
           default:
@@ -1102,51 +1098,52 @@
         }
       }
 
-      _targetElementChanged ( newTargetElement ) {
-        if ( typeof newTargetElement === "object" && this.searchInline === true ) {
+      _targetElementChanged (newTargetElement) {
+        if (newTargetElement instanceof HTMLElement) {
           this._unbindSearchInputListeners();
-          this.searchInput = this.targetElement;
+          this.searchInput = this.searchCombo ? this.searchInput : this.targetElement;
           this._bindSearchInputListeners();
         }
       }
 
       _bindSearchInputListeners () {
-        if ( this.searchInput ) {
-          if ( this.disabled ) {
+        if (this.searchInput && this.targetElement) {
+          if (this.disabled) {
             this.searchInput.setAttribute('disabled', '');
           }
           this._unbindSearchInputListeners();
 
           this.searchInput.addEventListener('blur', this._boundSearchInputBlurred);
           this.searchInput.addEventListener('focus', this._boundSearchInputFocused);
+          this.targetElement.addEventListener('click', this._boundSearchInputClicked);
           this.searchInput.addEventListener('value-changed', this._boundDebounceFilterItems);
           this.searchInput.addEventListener('keydown', this._boundSearchInputKeyDownHandler);
           this.searchInput.addEventListener('keypress', this._boundSearchInputKeyPressHandler);
-
         }
       }
 
       _unbindSearchInputListeners () {
-        if ( this.searchInput ) {
+        if (this.searchInput && this.targetElement) {
+
           this.searchInput.removeEventListener('blur', this._boundSearchInputBlurred);
           this.searchInput.removeEventListener('focus', this._boundSearchInputFocused);
+          this.targetElement.removeEventListener('click', this._boundSearchInputClicked);
           this.searchInput.removeEventListener('value-changed', this._boundDebounceFilterItems);
           this.searchInput.removeEventListener('keydown', this._boundSearchInputKeyDownHandler);
           this.searchInput.removeEventListener('keypress', this._boundSearchInputKeyPressHandler);
         }
       }
 
-      _searchComboChanged ( newSearchComboValue, oldSearchComboValue ) {
-        if ( newSearchComboValue && !oldSearchComboValue ) {
+      _searchComboChanged (newSearchComboValue, oldSearchComboValue) {
+        if (newSearchComboValue && !oldSearchComboValue) {
           this.searchInline = false;
-          Polymer.RenderStatus.afterNextRender(this.shadowRoot.querySelector('#searchInput'), () => {
-            this.searchInput = this.shadowRoot.querySelector('#searchInput');
+
+          Polymer.RenderStatus.afterNextRender(this, () => {
+            this.$.dropdown.shadowRoot.querySelector('#suffixIcon').addEventListener('click', this._boundClearSearch);
+            this.searchInput = this.$.dropdown.shadowRoot.querySelector('#searchInput');
             this._bindSearchInputListeners();
           });
-          Polymer.RenderStatus.afterNextRender(this.shadowRoot.querySelector("#suffixIcon"), () => {
-            this.shadowRoot.querySelector("#suffixIcon").addEventListener('click', this._boundClearSearch);
-          });
-        } else if ( newSearchComboValue === false && oldSearchComboValue === true ) {
+        } else if (newSearchComboValue === false && oldSearchComboValue === true) {
           this._unbindSearchInputListeners();
         }
       }
