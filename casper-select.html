@@ -178,11 +178,18 @@
       horizontal-align="auto"
       template-style="[[templateStyle]]">
       <slot name="search"></slot>
+
+      <!--In this case, a paper-input will be rendered inside the dropdown itself-->
       <template is="dom-if" if="[[searchCombo]]">
-        <paper-input tabindex="1" id="searchInput" class="paper-input" no-label-float label="pesquisar..">
-          <iron-icon icon="casper-icons:clear" slot="suffix" id="suffixIcon" alt="limpar" title="limpar"></iron-icon>
+        <paper-input
+          tabindex="1"
+          no-label-float
+          id="searchInput"
+          label="[[searchComboPlaceholder]]">
+          <iron-icon icon="casper-icons:clear" slot="suffix" id="suffixIcon"></iron-icon>
         </paper-input>
       </template>
+
       <div id="dropdownScroller">
         <iron-list
           id="dropdownItems"
@@ -495,6 +502,14 @@
             type: Boolean,
             value: false,
             observer: '_searchComboChanged'
+          },
+          /**
+           * Placeholder present on the input that was dynamically added to the dropdown.
+           * @type {Object}
+           */
+          searchComboPlaceholder: {
+            type: String,
+            value: 'Escreva para filtrar..'
           },
           /**
            * Dynamically shows its own input, and uses it for filtering and for showing the selected option
