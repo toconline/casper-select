@@ -799,12 +799,7 @@
       _unsetValueInInput () {
         if (!this.searchInput) return;
 
-        if (!this.lazyLoadResource) {
-          this.searchInput.value = '';
-        } else {
-          this.searchInput.value = this._lastQuery || '';
-        }
-
+        this.searchInput.value = this._lastQuery || '';
         this.searchInput.readonly = false;
         this._resizeItemListHeight();
         if ( typeof this._tempFiltering !== "undefined" ) {
