@@ -128,9 +128,14 @@
         opacity: 0;
         position: absolute;
       }
+
+      slot[name='dropdown-prefix']::slotted(*),
+      slot[name='dropdown-suffix']::slotted(*) {
+        display: none;
+      }
     </style>
 
-    <template is="dom-if" if="[[ searchDynamic ]]">
+    <template is="dom-if" if="[[searchDynamic]]">
 
       <!--Multi-selection variant-->
       <template is="dom-if" if="[[multiSelection]]">
@@ -169,6 +174,9 @@
       </template>
     </template>
 
+    <slot name="dropdown-prefix"></slot>
+    <slot name="dropdown-suffix"></slot>
+
     <casper-select-dropdown
       id="dropdown"
       no-overlap
@@ -177,7 +185,6 @@
       vertical-align="auto"
       horizontal-align="auto"
       template-style="[[templateStyle]]">
-      <slot name="search"></slot>
 
       <!--In this case, a paper-input will be rendered inside the dropdown itself-->
       <template is="dom-if" if="[[searchCombo]]">
@@ -234,8 +241,6 @@
           </template>
         </div>
       </template>
-
-      <slot name="status"></slot>
     </casper-select-dropdown>
 
     <!--Element used to measure the longest dropdown item-->
@@ -712,6 +717,15 @@
           });
           intersectionObserver.observe(this);
         }
+
+        // Pass the slotted elements to the casper-select-dropdown element.
+        Polymer.RenderStatus.afterNextRender(this, () => {
+          const prefixSlotNodes = this.shadowRoot.querySelector('slot[name="dropdown-prefix"]').assignedNodes();
+          const suffixSlotNodes = this.shadowRoot.querySelector('slot[name="dropdown-suffix"]').assignedNodes();
+
+          if (prefixSlotNodes.length > 0) prefixSlotNodes.reverse().forEach(slotNode => this.$.dropdown.shadowRoot.prepend(slotNode));
+          if (suffixSlotNodes.length > 0) suffixSlotNodes.forEach(slotNode => this.$.dropdown.shadowRoot.appendChild(slotNode));
+        });
 
         window.select = window.select || this;
       }
