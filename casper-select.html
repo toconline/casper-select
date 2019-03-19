@@ -694,6 +694,14 @@
           lazyLoadInitialState: 'Escreva para começar a pesquisar.'
         };
 
+        // Detect if the browser supports the IntersectionObserver API.
+        if (this._browserSupportsIntersectionObserver()) {
+          const intersectionObserver = new IntersectionObserver(() => {
+            if (!this.offsetParent) this.closeDropdown();
+          });
+          intersectionObserver.observe(this);
+        }
+
         window.select = window.select || this;
       }
 
@@ -708,6 +716,11 @@
         if ( e.detail.value === false ) {
           this.shadowRoot.appendChild(this.$.dropdown);
 
+          // Clear the interval for browsers that don't support the IntersectionObserver API.
+          if (!this._browserSupportsIntersectionObserver() && this._intersectionObserverFallbackInterval) {
+            clearInterval(this._intersectionObserverFallbackInterval);
+          }
+
           this.opened = false;
           if ( !this.multiSelection && ( this.searchDynamic || this.searchInline ) ) {
             this.lastSelectedItems = this._selectedItems;
@@ -720,6 +733,13 @@
         // Opening
         } else {
           document.body.appendChild(this.$.dropdown);
+
+          // Set the interval for browsers that don't support the IntersectionObserver API.
+          if (!this._browserSupportsIntersectionObserver()) {
+            this._intersectionObserverFallbackInterval = setInterval(() => {
+              if (!this.offsetParent) this.closeDropdown();
+            }, 100);
+          }
 
           setTimeout(() => {
             this._selectedIndex === undefined
@@ -2008,6 +2028,10 @@
 
         // Only set the value in the search input for single-selection.
         if (!this.multiSelection) this._setValueInInput();
+      }
+
+      _browserSupportsIntersectionObserver () {
+        return 'IntersectionObserver' in window;
       }
     }
 
