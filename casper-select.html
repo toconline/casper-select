@@ -1003,8 +1003,6 @@
 
       _searchInputKeyDownHandler (event) {
 
-        if (!this.opened) this._searchInputClicked();
-
         let key = event.keyCode;
         switch (key) {
           case 8: // backspace
@@ -1096,6 +1094,8 @@
             event.stopPropagation();
             break;
           default:
+            // Open the dropdown when one presses other keys other than those which have special behaviors.
+            if (!this.opened) this._searchInputClicked();
             event.stopPropagation();
         }
 
