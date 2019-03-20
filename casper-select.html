@@ -603,12 +603,12 @@
             value: false
           },
           /**
-           * Hides the clear icon button.
+           * Allows the user to have empty values.
            * @type {Boolean}
            */
-          noClearIcon: {
+          allowClear: {
             type: Boolean,
-            value: false
+            value: true
           },
           /**
            * Does not open the select dropdown on arrow press.
@@ -944,7 +944,15 @@
             this._selectedItems = JSON.parse(JSON.stringify( this._selectedItems ));
           }
         } else {
-          if ( classList.contains('dropdown-item-selected') ) {
+          if (classList.contains('dropdown-item-selected')) {
+            // Force the user to have at least one item selected.
+            if (!this.allowClear) {
+              Polymer.RenderStatus.afterNextRender(this, () => {
+                this.$.dropdownItems.selectIndex(event.model.index);
+              });
+              return;
+            }
+
             this._selectedItems = [];
             this._selectedIndex = -1;
           } else {
@@ -1791,7 +1799,7 @@
        * @param {Object|Array} selectedItems - The currently selected item(s).
        */
       _shouldDisplayClearIcon (selectedItems) {
-        return !this.noClearIcon
+        return this.allowClear
           && selectedItems
           && Object.entries(selectedItems).length > 0;
       }
