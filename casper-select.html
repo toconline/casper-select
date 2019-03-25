@@ -446,7 +446,7 @@
           disabled: {
             type: Boolean,
             value: false,
-            observer: '_selectDisabled'
+            observer: '_disabledChanged'
           },
           /**
            * If multi-selection should be enabled
@@ -1381,18 +1381,12 @@
         return html;
       }
 
-      _selectDisabled ( isSelectDisabled ) {
-        if ( isSelectDisabled === true) {
-          if ( this.searchInput ) {
-            this.searchInput.setAttribute('disabled', '');
-          }
-          if ( this.opened ) {
-            this.closeDropdown();
-          }
+      _disabledChanged (disabled) {
+        if (disabled) {
+          if (this.opened) this.closeDropdown();
+          if (this.searchInput) this.searchInput.setAttribute('disabled', '');
         } else {
-          if ( this.searchInput ) {
-            this.searchInput.removeAttribute('disabled');
-          }
+          if (this.searchInput) this.searchInput.removeAttribute('disabled');
         }
 
         this._setValue();
@@ -1732,7 +1726,7 @@
       }
 
       _setValue () {
-        if (!this._selectedItems) {
+        if (!this._selectedItems || this.disabled) {
           this.value = '';
           return;
         }
