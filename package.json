@@ -1,7 +1,7 @@
 {
   "description": "Casper Select",
   "name": "@casper2020/casper-select",
-  "version": "1.0.0-rc.2",
+  "version": "1.0.0",
   "resolutions": {
     "inherits": "2.0.3",
     "samsam": "1.1.3",
@@ -10,8 +10,8 @@
   },
   "main": "casper-select.js",
   "dependencies": {
-    "@casper2020/casper-button": "^1.0.0-rc.3",
-    "@casper2020/casper-icons": "^1.0.0-rc.1",
+    "@casper2020/casper-button": "^1.x",
+    "@casper2020/casper-icons": "^1.x",
     "@polymer/iron-fit-behavior": "^3.0.1",
     "@polymer/iron-input": "^3.0.0",
     "@polymer/iron-list": "^3.0.2",
