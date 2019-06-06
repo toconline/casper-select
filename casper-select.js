@@ -55,6 +55,14 @@ class CasperSelect extends PolymerElement {
           --paper-input-container-label: {
             @apply --casper-select-single-paper-input-container-label;
           }
+
+          --paper-input-container-underline: {
+            @apply --casper-select-single-paper-input-container-underline;
+          }
+
+          --paper-input-container-underline-focus: {
+            @apply --casper-select-single-paper-input-container-underline-focus;
+          }
         }
 
         .casper-single-selection .input-icons iron-icon {
