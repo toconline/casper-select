@@ -160,7 +160,11 @@ class CasperSelect extends PolymerElement {
         <!--Single-selection variant-->
         <template is="dom-if" if="[[!multiSelection]]">
           <div class="casper-single-selection">
-            <paper-input id="searchSelf" label="[[label]]" disabled="[[disabled]]" no-label-float="[[noLabelFloat]]">
+            <paper-input
+              id="searchSelf"
+              label="[[label]]"
+              no-label-float="[[noLabelFloat]]"
+              disabled="[[_isInputDisabled(readonly, disabled)]]">
               <div class="input-icons" slot="suffix">
                 <!--Only display the first icon if there are selected items-->
                 <template is="dom-if" if="[[_shouldDisplayClearIcon(_selectedItems)]]">
@@ -235,6 +239,16 @@ class CasperSelect extends PolymerElement {
   static get properties () {
     return {
       /**
+       * Casper-Select current option stringified
+       * @type {String}
+       */
+      value: {
+        type: String,
+        notify: true,
+        value: '',
+        observer: '_valueChanged'
+      },
+      /**
        * Items supplied
        * @type {Object}
        */
@@ -249,8 +263,7 @@ class CasperSelect extends PolymerElement {
        */
       disabledItems: {
         type: Object,
-        observer: '_disabledItemsChanged',
-        value: () => []
+        observer: '_disabledItemsChanged'
       },
       /**
        * Disabled Items Keys Stored
@@ -292,14 +305,6 @@ class CasperSelect extends PolymerElement {
       multiSelectionValueSeperator: {
         type: String,
         value: ','
-      },
-      /**
-       * Initial ID to be compared to "keyColumn" for initial selection
-       * @type {Object}
-       */
-      initialId: {
-        type: Object,
-        observer: '_initialIdChanged'
       },
       /**
        * Dynamic Search Input - Internal Paper Input Property
@@ -386,14 +391,6 @@ class CasperSelect extends PolymerElement {
         value: () => []
       },
       /**
-       * Casper-Select current option stringified
-       * @type {String}
-       */
-      value: {
-        type: String,
-        notify: true
-      },
-      /**
        * HTML Template for the items, with curly brackets for object value replacement
        * @type {String}
        */
@@ -422,8 +419,14 @@ class CasperSelect extends PolymerElement {
        */
       disabled: {
         type: Boolean,
-        value: false,
         observer: '_disabledChanged'
+      },
+      /**
+       * Make the casper-select only readonly.
+       * @type {Object}
+       */
+      readonly: {
+        type: Boolean,
       },
       /**
        * If multi-selection should be enabled
@@ -596,14 +599,6 @@ class CasperSelect extends PolymerElement {
         value: false
       },
       /**
-       * Upon destruction of the select, do not set the initial id to undefined
-       * @type {Boolean}
-       */
-      keepInitialIdOnDestroy: {
-        type: Boolean,
-        value: false
-      },
-      /**
        * JSON API resource to use in the web socket calls
        * @type {String}
        */
@@ -765,12 +760,15 @@ class CasperSelect extends PolymerElement {
     this.filtering = false;
 
     const inputValue = this._selectedItems ? this._selectedItems[this.itemColumn] : '';
-    this.searchInput.value = inputValue;
 
-    // Hack because the floating sometimes behaves erratically and overlaps the value.
-    this.searchInput.invalid = true;
-    this.searchInput.invalid = false;
-    this.searchInput.readonly = true;
+    afterNextRender(this, () => {
+      this.searchInput.value = inputValue;
+
+      // Hack because the floating sometimes behaves erratically and overlaps the value.
+      this.searchInput.invalid = true;
+      this.searchInput.invalid = false;
+      this.searchInput.readonly = true;
+    });
   }
 
   _unsetValueInInput () {
@@ -839,7 +837,12 @@ class CasperSelect extends PolymerElement {
       this.$.dropdown.refit();
     }
 
-    this._setValue();
+    if (this._skipSetValue) {
+      this._skipSetValue = false;
+    } else {
+      this._setValue();
+    }
+
     if ( !this.disabled ) {
       this.dispatchEvent(new CustomEvent('casper-select-changed', { detail: { selectedItems: newSelectedItems } }));
     }
@@ -881,10 +884,10 @@ class CasperSelect extends PolymerElement {
     if (this.opened) return;
 
     // Open the dropdown in case of lazy loading because the items actively change according to the search input.
-    if (this.lazyLoadResource && !this.disabled) {
+    if (this.lazyLoadResource && !this.disabled && !this.readonly) {
       this.openDropdown();
     } else if (!this.lazyLoadResource) {
-      this.items && this.items.length > 0 && !this.disabled
+      this.items && this.items.length > 0 && !this.disabled && !this.readonly
         ? this.openDropdown()
         : this.searchInput.blur();
     }
@@ -1173,11 +1176,6 @@ class CasperSelect extends PolymerElement {
     this.filteredItems = [];
     this._selectedItems = [];
     this.lastSelectedItems = [];
-    this._alreadyInitialized = false;
-
-    if (!this.keepInitialIdOnDestroy) {
-      this.initialId = undefined;
-    }
 
     if (this.opened) {
       this.closeDropdown();
@@ -1204,7 +1202,7 @@ class CasperSelect extends PolymerElement {
       this.filteredItems = [];
     }
 
-    if ( newItems && newItems && newItems.length > 0 && newItems[0].constructor === String) {
+    if ( newItems && newItems.length > 0 && newItems[0].constructor === String) {
       // The following object change will trigger the observer again, so we do an early return.
       this.items = newItems.map((element, index) => ({ id: index, name: element }));
       return;
@@ -1230,7 +1228,6 @@ class CasperSelect extends PolymerElement {
       afterNextRender(this.searchInput, () => {
         this._resizeItemListHeight();
         this._resizeItemListWidth();
-        this._initialIdChanged();
       });
       if ( typeof this._ignoreDisabledItems === "undefined" || this._ignoreDisabledItems === false ) {
         const currentDisabledItemsKeys = this.disabledItemsKeys;
@@ -1684,24 +1681,6 @@ class CasperSelect extends PolymerElement {
     this.$.dropdown.notifyResize();
   }
 
-  setValue (newValue) {
-    afterNextRender(this, () => {
-      if (this.disabled) return;
-
-      // Firstly clear all the items selected.
-      this._selectedItems = this.ironListSelectedItems = this.lastSelectedItems = [];
-
-      if (newValue) {
-        const valuesToSelect = !this.multiSelection
-          ? [newValue]
-          : newValue.split(this.multiSelectionValueSeperator);
-
-        this._findAndSelectItems(valuesToSelect);
-        this._setValue();
-      }
-    });
-  }
-
   _setValue () {
     if (!this._selectedItems || this.disabled) {
       this.value = '';
@@ -1752,6 +1731,8 @@ class CasperSelect extends PolymerElement {
    * @param {Object} event - The event that was triggered.
    */
   _clearSelectIconClicked (event) {
+    if (this.disabled || this.readonly) return;
+
     event.stopImmediatePropagation();
 
     if (!!this.lazyLoadResource) {
@@ -1928,24 +1909,19 @@ class CasperSelect extends PolymerElement {
     this.smartFilter = false;
   }
 
-  _initialIdChanged () {
+  _valueChanged (value) {
     afterNextRender(this, () => {
-      // For those cases where the initial-id has not been mapped to the properties yet.
-      const initialId = this.initialId || this.getAttribute('initial-id');
-
       if (
-        initialId !== null
-        && initialId !== undefined
-        && this.items
-        && this.items.length > 0
-        && !this._alreadyInitialized
+        value !== null &&
+        value !== undefined &&
+        this.items &&
+        this.items.length > 0
       ) {
-        // Mark this flag to not run this code section in the future.
-        this._alreadyInitialized = true;
-
-        // Convert the initial id into an array to avoid code complexity on single selection.
-        const initialIds = initialId.constructor === Array ? initialId : [initialId];
-        this._findAndSelectItems(initialIds);
+        const valuesToSelect = !this.multiSelection ? [value] : value.split(this.multiSelectionValueSeperator);
+  
+        // Flag used to avoid infinite loops of observers triggering each other.
+        this._skipSetValue = true;
+        this._findAndSelectItems(valuesToSelect);
       }
     });
   }
@@ -1972,7 +1948,7 @@ class CasperSelect extends PolymerElement {
   }
 
   _isDisplayingInitialState () {
-    const existingInitialId = this.getAttribute('initial-id') !== null;
+    const existingInitialId = this.getAttribute('value') !== null;
 
     this._lazyLoadAlreadyFiltered = this._lazyLoadAlreadyFiltered || this.searchInput.value !== '';
     this._lazyLoadInitialState = existingInitialId && !this._lazyLoadAlreadyFiltered;
@@ -2014,10 +1990,15 @@ class CasperSelect extends PolymerElement {
         }
       });
 
-      if (foundItems >= itemsToSelect.length) break;
+      if (foundItems === itemsToSelect.length) break;
     }
 
-    this._selectedItems = this.lastSelectedItems = JSON.parse(JSON.stringify(this.ironListSelectedItems));
+    if (foundItems === 0) {
+      this._selectedItems = this.lastSelectedItems = [];
+      this.$.dropdownItems.clearSelection();
+    } else {
+      this._selectedItems = this.lastSelectedItems = JSON.parse(JSON.stringify(this.ironListSelectedItems));
+    }
 
     if (selectedIndexes.length > 0) {
       // If there is only one selected item use that index, otherwise use the minimum one.
@@ -2032,6 +2013,11 @@ class CasperSelect extends PolymerElement {
 
   _browserSupportsIntersectionObserver () {
     return 'IntersectionObserver' in window;
+  }
+
+  _isInputDisabled (readonly, disabled) {
+    // This is only used because we want to apply the same styles to readonly as disabled.
+    return readonly || disabled;
   }
 }
 
