@@ -43,22 +43,32 @@ class CasperSelect extends PolymerElement {
         }
 
         /* Styles applied to the single-selection variant */
-        .casper-single-selection .input-icons {
-          --paper-input-suffix: {
-            display: flex;
-            color: #525252;
-          };
+        .casper-single-selection {
+          --paper-input-container: {
+            @apply --casper-select-single-paper-input-container;
+          }
+
+          --paper-input-container-input: {
+            @apply --casper-select-single-paper-input-container-input;
+          }
+
+          --paper-input-container-label: {
+            @apply --casper-select-single-paper-input-container-label;
+          }
         }
 
         .casper-single-selection .input-icons iron-icon {
           width: 15px;
           height: 15px;
-          transition: color 200ms linear;
+          color: #525252;
+          transition: color 200ms linear; 
+          @apply --casper-select-single-paper-input-icon;
         }
 
         .casper-single-selection .input-icons iron-icon:hover {
           color: black;
           cursor: pointer;
+          @apply --casper-select-single-paper-input-icon-hover;
         }
 
         /* Styles applied to the multi-selection variant */
@@ -1403,7 +1413,7 @@ class CasperSelect extends PolymerElement {
   }
 
   _multiSelectionTagsDefined ( multiSelectionTags ) {
-    this.noLabelFloat = multiSelectionTags;
+    this.noLabelFloat = multiSelectionTags || this.noLabelFloat;
     return multiSelectionTags ? 'multiSelectionWithTags' : '';
   }
 
