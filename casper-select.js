@@ -65,6 +65,10 @@ class CasperSelect extends PolymerElement {
           }
         }
 
+        .casper-single-selection .input-icons {
+          display: flex;
+        }
+
         .casper-single-selection .input-icons iron-icon {
           width: 15px;
           height: 15px;
@@ -198,8 +202,14 @@ class CasperSelect extends PolymerElement {
       <slot name="dropdown-prefix"></slot>
       <slot name="dropdown-suffix"></slot>
 
-      <casper-select-dropdown id="dropdown" no-overlap="" dynamic-align="" no-cancel-on-esc-key="" vertical-align="auto" horizontal-align="auto" template-style="[[templateStyle]]">
-
+      <casper-select-dropdown
+        id="dropdown"
+        no-overlap
+        dynamic-align
+        no-cancel-on-esc-key
+        vertical-align="auto"
+        horizontal-align="auto"
+        template-style="[[templateStyle]]">
         <!--In this case, a paper-input will be rendered inside the dropdown itself-->
         <template is="dom-if" if="[[searchCombo]]">
           <paper-input tabindex="1" no-label-float="" id="searchInput" label="[[searchComboPlaceholder]]">
