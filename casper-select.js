@@ -1243,6 +1243,10 @@ class CasperSelect extends PolymerElement {
 
     if ( this.items.length > 0 ) {
       this.filterItems(undefined, true);
+
+      // Invoke this method manually since the select might already have a value assigned to it.
+      this._valueChanged(this.value);
+
       afterNextRender(this.searchInput, () => {
         this._resizeItemListHeight();
         this._resizeItemListWidth();
