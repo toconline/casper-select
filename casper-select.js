@@ -855,11 +855,7 @@ class CasperSelect extends PolymerElement {
       this.$.dropdown.refit();
     }
 
-    if (this._skipSetValue) {
-      this._skipSetValue = false;
-    } else {
-      this._setValue();
-    }
+    this._setValue(this.value);
 
     if ( !this.disabled ) {
       this.dispatchEvent(new CustomEvent('casper-select-changed', { detail: { selectedItems: newSelectedItems } }));
@@ -1941,8 +1937,6 @@ class CasperSelect extends PolymerElement {
       ) {
         const valuesToSelect = !this.multiSelection ? [value] : value.split(this.multiSelectionValueSeperator);
   
-        // Flag used to avoid infinite loops of observers triggering each other.
-        this._skipSetValue = true;
         this._findAndSelectItems(valuesToSelect);
       }
     });
