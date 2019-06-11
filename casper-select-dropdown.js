@@ -152,7 +152,6 @@ class CasperSelectDropdown extends mixinBehaviors([IronOverlayBehavior, IronFitB
           #dropdownItems .dropdown-item.dropdown-item-disabled {
             color: #00000033;
             cursor: not-allowed;
-            background-color: #DEDEDE;
             @apply --casper-select-dropdown-item-disabled;
           }
 
