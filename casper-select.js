@@ -1807,10 +1807,12 @@ class CasperSelect extends PolymerElement {
 
   _searchInputBlurred () {
     this._shouldLabelFloat = !!this.searchInput.value || this._multiSelectionHasItems();
+    this._searchInputFiltering = false;
   }
 
   _searchInputFocused () {
     this._shouldLabelFloat = true;
+    this._searchInputFiltering = true;
   }
 
   _loadMoreItems (eventSource) {
@@ -2034,7 +2036,7 @@ class CasperSelect extends PolymerElement {
     }
 
     // Only set the value in the search input for single-selection.
-    if (!this.multiSelection) this._setValueInInput();
+    if (!this.multiSelection && !this._searchInputFiltering) this._setValueInInput();
   }
 
   _browserSupportsIntersectionObserver () {
