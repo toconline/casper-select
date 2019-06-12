@@ -154,6 +154,7 @@ class CasperSelect extends PolymerElement {
 
         #measureDropdownItem {
           opacity: 0;
+          left: -100vh;
           position: absolute;
         }
 
