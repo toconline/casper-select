@@ -331,7 +331,7 @@ class CasperSelect extends PolymerElement {
        * Multi Selection Key Values Seperator
        * @type {Object}
        */
-      multiSelectionValueSeperator: {
+      multiSelectionValueSeparator: {
         type: String,
         value: ','
       },
@@ -1474,8 +1474,8 @@ class CasperSelect extends PolymerElement {
     }, defaultTimeout);
   }
 
-  openDropdown () {
-    this.$.dropdown.positionTarget = this.targetElement;
+  openDropdown (targetElement) {
+    this.$.dropdown.positionTarget = targetElement || this.targetElement;
     this.$.dropdown.open();
   }
 
@@ -1718,7 +1718,7 @@ class CasperSelect extends PolymerElement {
 
     this.value = !this.multiSelection
       ? this._selectedItems[this.keyColumn]
-      : this._selectedItems.map(item => item[this.keyColumn]).join(this.multiSelectionValueSeperator);
+      : this._selectedItems.map(item => item[this.keyColumn]).join(this.multiSelectionValueSeparator);
   }
 
   get selectedItems () {
@@ -1948,7 +1948,7 @@ class CasperSelect extends PolymerElement {
         this.items &&
         this.items.length > 0
       ) {
-        const valuesToSelect = !this.multiSelection ? [value] : value.split(this.multiSelectionValueSeperator);
+        const valuesToSelect = !this.multiSelection ? [value] : value.split(this.multiSelectionValueSeparator);
   
         this._findAndSelectItems(valuesToSelect);
       }
