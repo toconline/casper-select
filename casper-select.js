@@ -861,12 +861,15 @@ class CasperSelect extends PolymerElement {
           });
         }
       }
-      this.$.dropdown.refit();
-    } else {
-      this.$.dropdown.refit();
     }
 
-    this._setValue(this.value);
+    this.$.dropdown.refit();
+
+    if (this._skipSetValue) {
+      this._skipSetValue = false;
+    } else {
+      this._setValue();
+    }
 
     if ( !this.disabled ) {
       this.dispatchEvent(new CustomEvent('casper-select-changed', { detail: { selectedItems: newSelectedItems } }));
@@ -1250,9 +1253,6 @@ class CasperSelect extends PolymerElement {
 
     if ( this.items.length > 0 ) {
       this.filterItems(undefined, true);
-
-      // Invoke this method manually since the select might already have a value assigned to it.
-      this._valueChanged(this.value);
 
       afterNextRender(this.searchInput, () => {
         this._resizeItemListHeight();
@@ -1941,6 +1941,8 @@ class CasperSelect extends PolymerElement {
   }
 
   _valueChanged (value) {
+    this._skipSetValue = true;
+
     afterNextRender(this, () => {
       if (
         value !== null &&
