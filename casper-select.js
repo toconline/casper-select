@@ -1704,13 +1704,13 @@ class CasperSelect extends PolymerElement {
   }
 
   _setValue () {
-    this._skipValueObserver = true;
+
     if (!this._selectedItems || this.disabled) {
-      this.value = '';
+      this.value = this._skipValueObserver = '';
       return;
     }
 
-    this.value = !this.multiSelection
+    this.value = this._skipValueObserver = !this.multiSelection
       ? this._selectedItems[this.keyColumn]
       : this._selectedItems.map(item => item[this.keyColumn]).join(this.multiSelectionValueSeparator);
   }
@@ -1935,17 +1935,16 @@ class CasperSelect extends PolymerElement {
   }
 
   _valueChanged (value) {
-    if (this._skipValueObserver) {
-      this._skipValueObserver = false;
+    if (this._skipValueObserver === value) {
+      this._skipValueObserver = undefined;
       return;
     }
 
     afterNextRender(this, () => {
-      if (
-        value !== null &&
-        value !== undefined &&
-        this.items &&
-        this.items.length > 0
+      if (value !== null
+        && value !== undefined
+        && this.items
+        && this.items.length > 0
       ) {
         const valuesToSelect = !this.multiSelection ? [value] : value.split(this.multiSelectionValueSeparator);
         this._findAndSelectItems(valuesToSelect);
