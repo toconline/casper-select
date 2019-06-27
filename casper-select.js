@@ -729,6 +729,8 @@ class CasperSelect extends PolymerElement {
     });
 
     window.select = window.select || this;
+
+    if (this.lazyLoadResource) this._loadMoreItems('scroll');
   }
 
   _cancelOverlay (e) {
