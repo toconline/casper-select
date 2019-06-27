@@ -866,12 +866,7 @@ class CasperSelect extends PolymerElement {
     }
 
     this.$.dropdown.refit();
-
-    if (this._skipSetValue) {
-      this._skipSetValue = false;
-    } else {
-      this._setValue();
-    }
+    this._setValue();
 
     if ( !this.disabled ) {
       this.dispatchEvent(new CustomEvent('casper-select-changed', { detail: { selectedItems: newSelectedItems } }));
@@ -1709,6 +1704,7 @@ class CasperSelect extends PolymerElement {
   }
 
   _setValue () {
+    this._skipValueObserver = true;
     if (!this._selectedItems || this.disabled) {
       this.value = '';
       return;
@@ -1939,7 +1935,10 @@ class CasperSelect extends PolymerElement {
   }
 
   _valueChanged (value) {
-    this._skipSetValue = true;
+    if (this._skipValueObserver) {
+      this._skipValueObserver = false;
+      return;
+    }
 
     afterNextRender(this, () => {
       if (
@@ -1949,7 +1948,6 @@ class CasperSelect extends PolymerElement {
         this.items.length > 0
       ) {
         const valuesToSelect = !this.multiSelection ? [value] : value.split(this.multiSelectionValueSeparator);
-  
         this._findAndSelectItems(valuesToSelect);
       }
     });
