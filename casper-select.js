@@ -931,10 +931,6 @@ class CasperSelect extends PolymerElement {
       return;
     }
 
-    if ( !this._selectedItems || this._selectedItems.length === 0 ) {
-      this._selectedItems = [];
-    }
-
     if ( this.multiSelection ) {
       if ( classList.contains('dropdown-item-selected') ) {
         for ( let [key, item] of Object.entries(this._selectedItems) ) {
