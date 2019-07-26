@@ -1852,9 +1852,21 @@ class CasperSelect extends PolymerElement {
         // Calculate the total number of existing pages.
         this._lazyLoadTotalResults = parseInt(socketResponse.meta.total);
 
+        // Fetch the relationships data which falls under the 'included' key.
+        const includedData = socketResponse.included ? socketResponse.included : null;
+        const resultsIncludedData = {};
+        if (includedData && includedData.length > 0) {
+          includedData.forEach(included => {
+            if (!resultsIncludedData[included.type]) {
+              resultsIncludedData[included.type] = {};
+            }
+            resultsIncludedData[included.type][included.id] = included;
+          });
+        }
+
         // Either replace the all items list if it was triggered by a search or append if it's a scroll event.
         const currentItems = this.items || [];
-        const formattedResultItems = socketResponse.data.map(item => this.lazyLoadCallback(item));
+        const formattedResultItems = socketResponse.data.map(item => this.lazyLoadCallback(item, resultsIncludedData));
         const resultItems = triggeredFromSearch ? formattedResultItems : [...currentItems, ...formattedResultItems];
 
         // This is used so that we can push the elements into the list instead of directly replacing them
