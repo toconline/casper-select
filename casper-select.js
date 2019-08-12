@@ -1931,7 +1931,7 @@ class CasperSelect extends PolymerElement {
         }
 
       }).join(' OR ');
-      resourceUrlParams.push(`${this.lazyLoadFilterAttr}="${filterParams}"`);
+      resourceUrlParams.push(`${this.lazyLoadFilterAttr}="(${filterParams})"`);
     }
 
     // Check if the resource URL already contains a ? which indicates some parameters were already given.
