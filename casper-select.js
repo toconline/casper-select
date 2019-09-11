@@ -2019,16 +2019,23 @@ class CasperSelect extends PolymerElement {
     let foundItems = 0;
     const selectedIndexes = [];
 
+    // In case of multi-selection clear the current selected items.
+    if (this.multiSelection) {
+      this.selectedItems
+        .map(selectedItem => this.items.findIndex(item => item[this.keyColumn].toString() === selectedItem[this.keyColumn].toString()))
+        .forEach(selectedIndex => this.$.dropdownItems.deselectIndex(selectedIndex));
+    }
+
     for (let [key, item] of Object.entries(this.items)) {
       itemsToSelect.forEach(itemToSelect => {
         if (itemToSelect.toString() === item[this.keyColumn].toString()) {
           foundItems++;
           selectedIndexes.push(parseInt(key));
           this.$.dropdownItems.selectIndex(parseInt(key));
-        } else {
-          this.$.dropdownItems.deselectIndex(parseInt(key));
         }
       });
+
+      if (foundItems === itemsToSelect.length) break;
     }
 
     if (foundItems === 0) {
