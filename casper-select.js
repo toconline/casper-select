@@ -2024,11 +2024,11 @@ class CasperSelect extends PolymerElement {
         if (itemToSelect.toString() === item[this.keyColumn].toString()) {
           foundItems++;
           selectedIndexes.push(parseInt(key));
-          this.$.dropdownItems.selectItem(this.$.dropdownItems.items[key]);
+          this.$.dropdownItems.selectIndex(parseInt(key));
+        } else {
+          this.$.dropdownItems.deselectIndex(parseInt(key));
         }
       });
-
-      if (foundItems === itemsToSelect.length) break;
     }
 
     if (foundItems === 0) {
