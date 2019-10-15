@@ -27,6 +27,8 @@ import '@polymer/iron-input/iron-input.js';
 import '@polymer/paper-input/paper-input.js';
 import '@polymer/paper-spinner/paper-spinner.js';
 import '@polymer/paper-input/paper-input-container.js';
+import { timeOut } from '@polymer/polymer/lib/utils/async.js';
+import { Debouncer } from '@polymer/polymer/lib/utils/debounce.js';
 import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
 import { afterNextRender } from '@polymer/polymer/lib/utils/render-status.js';
 
@@ -73,7 +75,7 @@ class CasperSelect extends PolymerElement {
           width: 15px;
           height: 15px;
           color: #525252;
-          transition: color 200ms linear; 
+          transition: color 200ms linear;
           @apply --casper-select-single-paper-input-icon;
         }
 
@@ -1811,91 +1813,93 @@ class CasperSelect extends PolymerElement {
   }
 
   _loadMoreItems (eventSource) {
-    this._lazyLoadTyping = false;
+    this.__loadMoreItemsDebouncer = Debouncer.debounce(this.__loadMoreItemsDebouncer, timeOut.after(100), () => {
+      this._lazyLoadTyping = false;
 
-    if (!this.lazyLoadResource) return;
+      if (!this.lazyLoadResource) return;
 
-    const triggeredFromSearch = eventSource === 'search';
+      const triggeredFromSearch = eventSource === 'search';
 
-    afterNextRender(this.searchInput, () => {
-      // This is used to display the initial values without pre-fetching any data.
-      if (this._isDisplayingInitialState()) return this.filterItems();
+      afterNextRender(this.searchInput, () => {
+        // This is used to display the initial values without pre-fetching any data.
+        if (this._isDisplayingInitialState()) return this.filterItems();
 
-      // Used to not trigger an additional query for a repeated search for when the user opens the select.
-      if (triggeredFromSearch && this.searchInput && this.searchInput.value === this._lastQuery) return;
+        // Used to not trigger an additional query for a repeated search for when the user opens the select.
+        if (triggeredFromSearch && this.searchInput && this.searchInput.value === this._lastQuery) return;
 
-      // Flag that states if this is the first time fetching data or not.
-      this._lazyLoadFirstFetch = this._lazyLoadFirstFetch !== undefined ? this._lazyLoadFirstFetch : true;
+        // Flag that states if this is the first time fetching data or not.
+        this._lazyLoadFirstFetch = this._lazyLoadFirstFetch !== undefined ? this._lazyLoadFirstFetch : true;
 
-      // This means the filter has changed therefore you reset the page number and the disabled flag.
-      if (triggeredFromSearch || !this._lazyLoadCurrentPage) {
-        this._lazyLoadCurrentPage = 0;
-        this._lazyLoadDisabled = false;
-      }
-
-      if (this._lazyLoadDisabled) return;
-
-      this._lazyLoadFetching = true;
-      this._lazyLoadRequestId = app.socket.getData(this._loadMoreItemsUrl(), this.lazyLoadTimeout, (socketResponse, request) => {
-        // Ignore previous requests to prevent race conditions.
-        if (this._lazyLoadRequestId !== request.invokeId) return;
-
-        // Hide the spinner and reset the scroll triggers.
-        this._lazyLoadFetching = false;
-        this._dropdownScrollEventDisabled = false;
-
-        if (socketResponse.errors) {
-          this.dispatchEvent(new CustomEvent('casper-select-lazy-loaded-error'));
-          return;
+        // This means the filter has changed therefore you reset the page number and the disabled flag.
+        if (triggeredFromSearch || !this._lazyLoadCurrentPage) {
+          this._lazyLoadCurrentPage = 0;
+          this._lazyLoadDisabled = false;
         }
 
-        // Calculate the total number of existing pages.
-        this._lazyLoadTotalResults = parseInt(socketResponse.meta.total);
+        if (this._lazyLoadDisabled) return;
 
-        // Fetch the relationships data which falls under the 'included' key.
-        const includedData = socketResponse.included ? socketResponse.included : null;
-        const resultsIncludedData = {};
-        if (includedData && includedData.length > 0) {
-          includedData.forEach(included => {
-            if (!resultsIncludedData[included.type]) {
-              resultsIncludedData[included.type] = {};
-            }
-            resultsIncludedData[included.type][included.id] = included;
-          });
-        }
+        this._lazyLoadFetching = true;
+        this._lazyLoadRequestId = app.socket.getData(this._loadMoreItemsUrl(), this.lazyLoadTimeout, (socketResponse, request) => {
+          // Ignore previous requests to prevent race conditions.
+          if (this._lazyLoadRequestId !== request.invokeId) return;
 
-        // Either replace the all items list if it was triggered by a search or append if it's a scroll event.
-        const currentItems = this.items || [];
-        const formattedResultItems = socketResponse.data.map(item => this.lazyLoadCallback(item, resultsIncludedData));
-        const resultItems = triggeredFromSearch ? formattedResultItems : [...currentItems, ...formattedResultItems];
+          // Hide the spinner and reset the scroll triggers.
+          this._lazyLoadFetching = false;
+          this._dropdownScrollEventDisabled = false;
 
-        // This is used so that we can push the elements into the list instead of directly replacing them
-        // which would cause iron-list to scroll to its top.
-        if (!triggeredFromSearch && this._lazyLoadCurrentPage !== 1) {
-          this._appendNewFilteredItems = formattedResultItems;
-        }
+          if (socketResponse.errors) {
+            this.dispatchEvent(new CustomEvent('casper-select-lazy-loaded-error'));
+            return;
+          }
 
-        // Save the last query in case there are no results.
-        if (triggeredFromSearch && socketResponse.data.length === 0) this._lastQuery = this.searchInput.value;
+          // Calculate the total number of existing pages.
+          this._lazyLoadTotalResults = parseInt(socketResponse.meta.total);
 
-        // Select the first item that resulted from a search.
-        if (triggeredFromSearch && socketResponse.data.length > 0 && !this.multiSelection) {
-          this._triggerFirstItemSelection = true;
-        }
+          // Fetch the relationships data which falls under the 'included' key.
+          const includedData = socketResponse.included ? socketResponse.included : null;
+          const resultsIncludedData = {};
+          if (includedData && includedData.length > 0) {
+            includedData.forEach(included => {
+              if (!resultsIncludedData[included.type]) {
+                resultsIncludedData[included.type] = {};
+              }
+              resultsIncludedData[included.type][included.id] = included;
+            });
+          }
 
-        this.items = resultItems;
+          // Either replace the all items list if it was triggered by a search or append if it's a scroll event.
+          const currentItems = this.items || [];
+          const formattedResultItems = socketResponse.data.map(item => this.lazyLoadCallback(item, resultsIncludedData));
+          const resultItems = triggeredFromSearch ? formattedResultItems : [...currentItems, ...formattedResultItems];
 
-        // Open the dropdown if this was triggered from a search event.
-        if (triggeredFromSearch && !this.opened) {
-          this.openDropdown();
-        }
+          // This is used so that we can push the elements into the list instead of directly replacing them
+          // which would cause iron-list to scroll to its top.
+          if (!triggeredFromSearch && this._lazyLoadCurrentPage !== 1) {
+            this._appendNewFilteredItems = formattedResultItems;
+          }
 
-        // Disable further socket queries if there are no more results.
-        this._lazyLoadDisabled = this.items.length === this._lazyLoadTotalResults;
+          // Save the last query in case there are no results.
+          if (triggeredFromSearch && socketResponse.data.length === 0) this._lastQuery = this.searchInput.value;
 
-        // Dispatch an event with the flag stating if it's the first fetch or not.
-        this.dispatchEvent(new CustomEvent('casper-select-lazy-loaded', { detail: { initialLoad: this._lazyLoadFirstFetch }}));
-        this._lazyLoadFirstFetch = false;
+          // Select the first item that resulted from a search.
+          if (triggeredFromSearch && socketResponse.data.length > 0 && !this.multiSelection) {
+            this._triggerFirstItemSelection = true;
+          }
+
+          this.items = resultItems;
+
+          // Open the dropdown if this was triggered from a search event.
+          if (triggeredFromSearch && !this.opened) {
+            this.openDropdown();
+          }
+
+          // Disable further socket queries if there are no more results.
+          this._lazyLoadDisabled = this.items.length === this._lazyLoadTotalResults;
+
+          // Dispatch an event with the flag stating if it's the first fetch or not.
+          this.dispatchEvent(new CustomEvent('casper-select-lazy-loaded', { detail: { initialLoad: this._lazyLoadFirstFetch }}));
+          this._lazyLoadFirstFetch = false;
+        });
       });
     });
   }
