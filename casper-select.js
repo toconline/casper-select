@@ -1208,15 +1208,9 @@ class CasperSelect extends PolymerElement {
   }
 
   _itemColumn(item) {
-    let csHTML;
-    if ( this.template && this._templateToReplace !== undefined ) {
-      let mapping = {};
-      this._templateToReplace.forEach(e => mapping[`{${e}}`] = item[e]);
-      csHTML = this._listItemInnerHTML(this.template.replace(/\{\w+\}/ig, n => mapping[n]));
-    } else {
-      csHTML = this._listItemInnerHTML(item[this.itemColumn]);
-    }
-    return csHTML;
+    return this.template && this._templateToReplace !== undefined
+      ? this._listItemInnerHTML(this.__stampItemTemplate(item))
+      : this._listItemInnerHTML(item[this.itemColumn]);
   }
 
   _itemsChanged ( newItems ) {
@@ -2071,16 +2065,20 @@ class CasperSelect extends PolymerElement {
     return readonly || disabled;
   }
 
-  __templateChanged (template) {
+  __templateChanged () {
     this.items.forEach(item => {
-      const templateClass = templatize(template);
-      const templateClassInstance = new templateClass(item);
-
-      const wrapperElement = document.createElement('div');
-      wrapperElement.appendChild(templateClassInstance.root);
-
-      item._csHTML = wrapperElement.outerHTML;
+      item._csHTML = this._listItemInnerHTML(this.__stampItemTemplate(item));
     });
+  }
+
+  __stampItemTemplate (item) {
+    const templateClass = templatize(this.template);
+    const templateClassInstance = new templateClass(item);
+
+    const wrapperElement = document.createElement('div');
+    wrapperElement.appendChild(templateClassInstance.root);
+
+    return wrapperElement.outerHTML;
   }
 }
 
