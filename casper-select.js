@@ -29,6 +29,7 @@ import '@polymer/paper-spinner/paper-spinner.js';
 import '@polymer/paper-input/paper-input-container.js';
 import { timeOut } from '@polymer/polymer/lib/utils/async.js';
 import { Debouncer } from '@polymer/polymer/lib/utils/debounce.js';
+import { templatize } from '@polymer/polymer/lib/utils/templatize.js';
 import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
 import { afterNextRender } from '@polymer/polymer/lib/utils/render-status.js';
 
@@ -426,7 +427,8 @@ class CasperSelect extends PolymerElement {
        * @type {String}
        */
       template: {
-        type: String
+        type: Object,
+        observer: '__templateChanged'
       },
       /**
        * CSS Styling for the HTML Template that overrides
@@ -2067,6 +2069,18 @@ class CasperSelect extends PolymerElement {
   _isInputDisabled (readonly, disabled) {
     // This is only used because we want to apply the same styles to readonly as disabled.
     return readonly || disabled;
+  }
+
+  __templateChanged (template) {
+    this.items.forEach(item => {
+      const templateClass = templatize(template);
+      const templateClassInstance = new templateClass(item);
+
+      const wrapperElement = document.createElement('div');
+      wrapperElement.appendChild(templateClassInstance.root);
+
+      item._csHTML = wrapperElement.outerHTML;
+    });
   }
 }
 
