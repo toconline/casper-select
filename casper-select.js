@@ -222,7 +222,13 @@ class CasperSelect extends PolymerElement {
         </template>
 
         <div id="dropdownScroller">
-          <iron-list id="dropdownItems" items="[[filteredItems]]" hidden$="[[noVisibleItems]]" selected-items="{{ironListSelectedItems}}" class$="[[_computedDisabledSelect(disabled)]]">
+          <iron-list
+            mutable-data
+            id="dropdownItems"
+            items="[[filteredItems]]"
+            hidden$="[[noVisibleItems]]"
+            selected-items="{{ironListSelectedItems}}"
+            class$="[[_computedDisabledSelect(disabled)]]">
             <template>
               <div on-click="_itemClicked" inner-h-t-m-l="[[_computedItemHtml(item._csHTML)]]" class$="dropdown-item [[ _computedItemSelectedClass(selected, index) ]] [[ _computedItemDisabledClass(item.csDisabled) ]]">
               </div>
@@ -428,14 +434,7 @@ class CasperSelect extends PolymerElement {
        */
       template: {
         type: Object,
-        observer: '__templateChanged'
-      },
-      /**
-       * CSS Styling for the HTML Template that overrides
-       * @type {Object}
-       */
-      templateStyle: {
-        type: String,
+        observer: 'restampTemplate'
       },
       /**
        * Template width per item in px
@@ -2065,13 +2064,16 @@ class CasperSelect extends PolymerElement {
     return readonly || disabled;
   }
 
-  __templateChanged () {
+  restampTemplate () {
+    if (!this.template) return;
+
     this.items.forEach(item => {
       item._csHTML = this._listItemInnerHTML(this.__stampItemTemplate(item));
     });
   }
 
   __stampItemTemplate (item) {
+
     const templateClass = templatize(this.template);
     const templateClassInstance = new templateClass(item);
 
