@@ -2065,7 +2065,7 @@ class CasperSelect extends PolymerElement {
   }
 
   restampTemplate () {
-    if (!this.template) return;
+    if (!this.template || !this.items) return;
 
     this.items.forEach(item => {
       item._csHTML = this._listItemInnerHTML(this.__stampItemTemplate(item));
