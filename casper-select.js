@@ -604,7 +604,8 @@ class CasperSelect extends PolymerElement {
        */
       opened: {
         type: Boolean,
-        value: false
+        value: false,
+        notify: true
       },
       /**
        * Resets filtering and search term on a new attachment
