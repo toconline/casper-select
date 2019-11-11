@@ -223,7 +223,6 @@ class CasperSelect extends PolymerElement {
 
         <div id="dropdownScroller">
           <iron-list
-            mutable-data
             id="dropdownItems"
             items="[[filteredItems]]"
             hidden$="[[noVisibleItems]]"
