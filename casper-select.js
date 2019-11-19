@@ -623,6 +623,15 @@ class CasperSelect extends PolymerElement {
         value: false
       },
       /**
+       * Allows the user to postpone the JSON API request which will now be triggered when first opening
+       * the casper-select-dropdown.
+       * @type {Boolean}
+       */
+      delayLazyLoad: {
+        type: Boolean,
+        value: false
+      },
+      /**
        * Does not open the select dropdown on arrow press.
        * @type {Boolean}
        */
@@ -731,9 +740,10 @@ class CasperSelect extends PolymerElement {
       if (suffixSlotNodes.length > 0) suffixSlotNodes.forEach(slotNode => this.$.dropdown.shadowRoot.appendChild(slotNode));
     });
 
-    window.select = window.select || this;
-
-    if (this.lazyLoadResource) this._loadMoreItems('scroll');
+    // Do not fetch the items if the delayLazyLoad flag is set to true.
+    if (this.lazyLoadResource && !this.delayLazyLoad) {
+      this._loadMoreItems('scroll');
+    }
   }
 
   _cancelOverlay (e) {
@@ -763,6 +773,11 @@ class CasperSelect extends PolymerElement {
       }
     // Opening
     } else {
+      // If the we are opening the casper-select-dropdown and the lazy load was delayed initially, fetch the items now.
+      if (this._lazyLoadFirstFetch === undefined && this.delayLazyLoad) {
+        this._loadMoreItems('scroll');
+      }
+
       document.body.appendChild(this.$.dropdown);
 
       // Set the interval for browsers that don't support the IntersectionObserver API.
