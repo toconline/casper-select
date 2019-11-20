@@ -210,10 +210,10 @@ class CasperSelect extends PolymerElement {
         id="dropdown"
         no-overlap
         dynamic-align
-        no-cancel-on-esc-key
         vertical-align="auto"
         horizontal-align="auto"
-        template-style="[[templateStyle]]">
+        template-style="[[templateStyle]]"
+        no-cancel-on-outside-click$="[[noCancelOnOutsideClick]]">
         <!--In this case, a paper-input will be rendered inside the dropdown itself-->
         <template is="dom-if" if="[[searchCombo]]">
           <paper-input tabindex="1" no-label-float="" id="searchInput" label="[[searchComboPlaceholder]]">
@@ -248,7 +248,7 @@ class CasperSelect extends PolymerElement {
             <!--Displays the number of visible results vs the total-->
             <div class="dropdown-pagination">
               <template is="dom-if" if="[[lazyLoadResource]]">
-                [[_dropdownPaginationInfo(items, _lazyLoadTotalResults, _lazyLoadInitialState)]]
+                [[_dropdownPaginationInfo(items, _lazyLoadTotalResults)]]
                 <paper-spinner active$="[[_shouldDisplaySpinner(_lazyLoadFetching, _lazyLoadTyping)]]">
                 </paper-spinner>
               </template>
@@ -640,6 +640,14 @@ class CasperSelect extends PolymerElement {
         value: false
       },
       /**
+       * Does not close the dropdown when clicking outside.
+       * @type {Boolean}
+       */
+      noCancelOnOutsideClick: {
+        type: Boolean,
+        value: false
+      },
+      /**
        * JSON API resource to use in the web socket calls
        * @type {String}
        */
@@ -700,6 +708,14 @@ class CasperSelect extends PolymerElement {
         type: Number,
         value: 5000
       },
+      /**
+       * Boolean that when set to true, fetches all the results at once.
+       * @type {Number}
+       */
+      lazyLoadFetchAllResults: {
+        type: Boolean,
+        value: false
+      }
     };
   }
 
@@ -718,10 +734,7 @@ class CasperSelect extends PolymerElement {
     this.$.dropdown.addEventListener('opened-changed', event => this._onOpenedChanged(event));
     this.$.dropdown.addEventListener('iron-overlay-canceled', event => this._cancelOverlay(event));
 
-    this._translations = {
-      multiSelectionCloseButton: 'Concluído',
-      lazyLoadInitialState: 'Escreva para começar a pesquisar.'
-    };
+    this._translations = { multiSelectionCloseButton: 'Concluído' };
 
     // Detect if the browser supports the IntersectionObserver API.
     if (this._browserSupportsIntersectionObserver()) {
@@ -1024,6 +1037,7 @@ class CasperSelect extends PolymerElement {
   }
 
   _searchInputKeyDownHandler (event) {
+    event.stopPropagation();
 
     let key = event.keyCode;
     switch (key) {
@@ -1052,7 +1066,6 @@ class CasperSelect extends PolymerElement {
         if ( !this.multiSelection ) {
           this.lastSelectedItems = this._selectedItems;
           if ( this.opened ) {
-
             if ( this.$.dropdownItems.items.length === 1 ) {
               this._selectedItems = this.lastSelectedItems = this.$.dropdownItems.items[0];
             }
@@ -1102,7 +1115,6 @@ class CasperSelect extends PolymerElement {
         this.opened || (this.noOpenOnArrowKeyPress && !this.multiSelection)
           ? this._moveSelection('up')
           : this._searchInputClicked();
-        event.stopPropagation();
         break;
       case 39: // right
         if ( this._doesntExistYet ) {
@@ -1113,12 +1125,10 @@ class CasperSelect extends PolymerElement {
         this.opened || (this.noOpenOnArrowKeyPress && !this.multiSelection)
           ? this._moveSelection('down')
           : this._searchInputClicked();
-        event.stopPropagation();
         break;
       default:
         // Open the dropdown when one presses other keys other than those which have special behaviors.
         if (!this.opened) this._searchInputClicked();
-        event.stopPropagation();
     }
 
     // The value-changed event is not fired for iron-input elements.
@@ -1716,7 +1726,6 @@ class CasperSelect extends PolymerElement {
   }
 
   _setValue () {
-
     if (!this._selectedItems || this.disabled) {
       this.value = this._skipValueObserver = '';
       return;
@@ -1831,9 +1840,6 @@ class CasperSelect extends PolymerElement {
       const triggeredFromSearch = eventSource === 'search';
 
       afterNextRender(this.searchInput, () => {
-        // This is used to display the initial values without pre-fetching any data.
-        if (this._isDisplayingInitialState()) return this.filterItems();
-
         // Used to not trigger an additional query for a repeated search for when the user opens the select.
         if (triggeredFromSearch && this.searchInput && this.searchInput.value === this._lastQuery) return;
 
@@ -1918,11 +1924,14 @@ class CasperSelect extends PolymerElement {
     this._lazyLoadCurrentPage++;
 
     // Apply the metadata, page size and current page number.
-    let resourceUrlParams = [
-      this.lazyLoadMetadataAttr,
-      `${this.lazyLoadPageSizeAttr}=${this.lazyLoadPageSize}`,
-      `${this.lazyLoadPageNumberAttr}=${this._lazyLoadCurrentPage}`
-    ];
+    let resourceUrlParams = [this.lazyLoadMetadataAttr];
+
+    if (!this.lazyLoadFetchAllResults) {
+      resourceUrlParams = resourceUrlParams.concat([
+        `${this.lazyLoadPageSizeAttr}=${this.lazyLoadPageSize}`,
+        `${this.lazyLoadPageNumberAttr}=${this._lazyLoadCurrentPage}`
+      ]);
+    }
 
     if (this.searchInput && this.searchInput.value && this.lazyLoadFilterFields) {
       // Escape the % characters that have a special meaning in the ILIKE clause.
@@ -1978,9 +1987,7 @@ class CasperSelect extends PolymerElement {
     });
   }
 
-  _dropdownPaginationInfo (items, lazyLoadTotalResults, lazyLoadInitialState) {
-    if (lazyLoadInitialState) return this._translations.lazyLoadInitialState;
-
+  _dropdownPaginationInfo (items, lazyLoadTotalResults) {
     if (items) return `${items.length} de ${lazyLoadTotalResults}`;
   }
 
@@ -1999,22 +2006,14 @@ class CasperSelect extends PolymerElement {
     return multiSelection || !!lazyLoadResource;
   }
 
-  _isDisplayingInitialState () {
-    const existingInitialId = this.getAttribute('value') !== null;
-
-    this._lazyLoadAlreadyFiltered = this._lazyLoadAlreadyFiltered || this.searchInput.value !== '';
-    this._lazyLoadInitialState = existingInitialId && !this._lazyLoadAlreadyFiltered;
-
-    return this._lazyLoadInitialState;
-  }
 
   _shouldDisplaySpinner (lazyLoadFetching, lazyLoadTyping) {
     return lazyLoadFetching || lazyLoadTyping;
   }
 
-  _dropdownScrolled (event) {
+  _dropdownScrolled () {
     // Ignore the event if this flagged is marked as true (not lazy load or no more results via lazy load).
-    if (this._dropdownScrollEventDisabled) return;
+    if (this._dropdownScrollEventDisabled || this.lazyLoadFetchAllResults) return;
 
     // Debounce the scroll event listener.
     if (this._dropdownScrollTimeout) clearTimeout(this._dropdownScrollTimeout);
