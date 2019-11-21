@@ -213,6 +213,7 @@ class CasperSelect extends PolymerElement {
         vertical-align="auto"
         horizontal-align="auto"
         template-style="[[templateStyle]]"
+        with-backdrop$="[[noCancelOnOutsideClick]]"
         no-cancel-on-outside-click$="[[noCancelOnOutsideClick]]">
         <!--In this case, a paper-input will be rendered inside the dropdown itself-->
         <template is="dom-if" if="[[searchCombo]]">
@@ -255,7 +256,7 @@ class CasperSelect extends PolymerElement {
             </div>
 
             <!--Button to close the dropdown when multi-selection is enabled-->
-            <template is="dom-if" if="[[multiSelection]]">
+            <template is="dom-if" if="[[_displayDropdownFooterButton(multiSelection, noCancelOnOutsideClick)]]">
               <casper-button size="s" on-click="closeDropdown">
                 [[_translations.multiSelectionCloseButton]]
               </casper-button>
@@ -436,15 +437,6 @@ class CasperSelect extends PolymerElement {
         observer: 'restampTemplate'
       },
       /**
-       * Template width per item in px
-       * List Width = This value * Longest Item String
-       * @type {Number}
-       */
-      listItemWidth: {
-        type: Number,
-        value: 20
-      },
-      /**
        * Disable the entire select
        * @type {Object}
        */
@@ -576,6 +568,11 @@ class CasperSelect extends PolymerElement {
        * @type {String}
        */
       listHeight: String,
+      /**
+       * Fixed List Item Height
+       * @type {Number}
+       */
+      listItemHeight: Number,
       /**
        * Fied List Width
        * @type {String}
@@ -1176,10 +1173,13 @@ class CasperSelect extends PolymerElement {
 
       this.searchInput.addEventListener('blur', this._boundSearchInputBlurred);
       this.searchInput.addEventListener('focus', this._boundSearchInputFocused);
-      this.targetElement.addEventListener('click', this._boundSearchInputClicked);
       this.searchInput.addEventListener('value-changed', this._boundDebounceFilterItems);
       this.searchInput.addEventListener('keydown', this._boundSearchInputKeyDownHandler);
       this.searchInput.addEventListener('keypress', this._boundSearchInputKeyPressHandler);
+
+      if (!this.searchCombo) {
+        this.targetElement.addEventListener('click', this._boundSearchInputClicked);
+      }
     }
   }
 
@@ -1188,10 +1188,13 @@ class CasperSelect extends PolymerElement {
 
       this.searchInput.removeEventListener('blur', this._boundSearchInputBlurred);
       this.searchInput.removeEventListener('focus', this._boundSearchInputFocused);
-      this.targetElement.removeEventListener('click', this._boundSearchInputClicked);
       this.searchInput.removeEventListener('value-changed', this._boundDebounceFilterItems);
       this.searchInput.removeEventListener('keydown', this._boundSearchInputKeyDownHandler);
       this.searchInput.removeEventListener('keypress', this._boundSearchInputKeyPressHandler);
+
+      if (!this.searchCombo) {
+        this.targetElement.removeEventListener('click', this._boundSearchInputClicked);
+      }
     }
   }
 
@@ -1467,7 +1470,7 @@ class CasperSelect extends PolymerElement {
     return selected ? 'dropdown-item-selected' : '';
   }
 
-  _debounceRender (defaultTimeout = 15) {
+  _debounceRender (defaultTimeout = 30) {
     if ( typeof this._debounceRenderTimeout !== "undefined" ) {
       clearTimeout(this._debounceRenderTimeout);
     }
@@ -1675,9 +1678,24 @@ class CasperSelect extends PolymerElement {
     }
   }
 
-  _resizeItemListHeight (useFiltered = true) {
-    let items = useFiltered ? this.filteredItems : this.items;
+  _resizeItemListHeight () {
     if (this.listHeight) {
+      if (this.items && this.listItemHeight) {
+        const measuringUnit = this.listHeight.slice(-2);
+        let measuringUnitSize;
+
+        if (measuringUnit === 'px') {
+          measuringUnitSize = parseInt(this.listHeight);
+        } else if (measuringUnit === 'vh') {
+          measuringUnitSize = document.documentElement.clientHeight * (parseInt(this.listHeight) / 100);
+        }
+
+        if (this.items.length * this.listItemHeight >= measuringUnitSize) {
+          this.$.dropdownItems.style.height = this.listHeight;
+          return;
+        }
+      }
+
       this.$.dropdownItems.style.maxHeight = this.listHeight;
     }
   }
@@ -1988,7 +2006,7 @@ class CasperSelect extends PolymerElement {
   }
 
   _dropdownPaginationInfo (items, lazyLoadTotalResults) {
-    if (items) return `${items.length} de ${lazyLoadTotalResults}`;
+    if (items) return `${items.length} de ${lazyLoadTotalResults ? lazyLoadTotalResults : '...'}`;
   }
 
   resetLazyLoad (internalReset = false) {
@@ -2076,6 +2094,10 @@ class CasperSelect extends PolymerElement {
   _isInputDisabled (readonly, disabled) {
     // This is only used because we want to apply the same styles to readonly as disabled.
     return readonly || disabled;
+  }
+
+  _displayDropdownFooterButton (multiSelection, noCancelOnOutsideClick) {
+    return multiSelection || noCancelOnOutsideClick;
   }
 
   restampTemplate () {
