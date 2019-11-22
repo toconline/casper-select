@@ -855,6 +855,9 @@ class CasperSelect extends PolymerElement {
         this._unbindSearchInputListeners();
         this.searchInput = this.shadowRoot.querySelector('#searchSelf');
         this._bindSearchInputListeners();
+
+        // Apply text-overflow to the inner input.
+        this.searchInput.shadowRoot.querySelector('input').style.textOverflow = 'ellipsis';
       });
     }
   }
