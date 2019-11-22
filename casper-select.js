@@ -857,7 +857,9 @@ class CasperSelect extends PolymerElement {
         this._bindSearchInputListeners();
 
         // Apply text-overflow to the inner input.
-        this.searchInput.shadowRoot.querySelector('input').style.textOverflow = 'ellipsis';
+        if (this.searchInput && this.searchInput.shadowRoot) {
+          this.searchInput.shadowRoot.querySelector('input').style.textOverflow = 'ellipsis';
+        }
       });
     }
   }
@@ -1236,7 +1238,7 @@ class CasperSelect extends PolymerElement {
     }
   }
 
-  _itemColumn(item) {
+  _itemColumn (item) {
     return this.template && this._templateToReplace !== undefined
       ? this._listItemInnerHTML(this.__stampItemTemplate(item))
       : this._listItemInnerHTML(item[this.itemColumn]);
@@ -2104,8 +2106,9 @@ class CasperSelect extends PolymerElement {
   restampTemplate () {
     if (!this.template || !this.items) return;
 
-    this.items.forEach(item => {
+    this.items = this.items.map(item => {
       item._csHTML = this._listItemInnerHTML(this.__stampItemTemplate(item));
+      return item;
     });
   }
 
