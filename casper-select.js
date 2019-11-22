@@ -1270,7 +1270,8 @@ class CasperSelect extends PolymerElement {
       this.items[key] = item;
     }
     if ( !this.filtering ) {
-      this.filteredItems = this.items;
+      this.filteredItems = [];
+      this.set('filteredItems', this.items);
     }
 
     if ( this.items.length > 0 ) {
@@ -1560,8 +1561,8 @@ class CasperSelect extends PolymerElement {
     }
   }
 
-  filterItems (query, clearLast = false) {
-    if ( typeof this.items === "undefined" || this.items.length === 0 || this.filtering === false ) {
+  filterItems (query, clearLast = false, skipFiltering = false) {
+    if ( typeof this.items === "undefined" || this.items.length === 0 || (skipFiltering === false && this.filtering === false) ) {
       return;
     }
 
@@ -2106,10 +2107,11 @@ class CasperSelect extends PolymerElement {
   restampTemplate () {
     if (!this.template || !this.items) return;
 
-    this.items = this.items.map(item => {
+    this.items.forEach(item => {
       item._csHTML = this._listItemInnerHTML(this.__stampItemTemplate(item));
-      return item;
     });
+
+    this.filterItems('', true, true);
   }
 
   __stampItemTemplate (item) {
