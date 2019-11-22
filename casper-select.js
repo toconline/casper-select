@@ -600,7 +600,6 @@ class CasperSelect extends PolymerElement {
        */
       opened: {
         type: Boolean,
-        value: false,
         notify: true
       },
       /**
@@ -848,7 +847,7 @@ class CasperSelect extends PolymerElement {
 
   _searchDynamicChanged ( newSearchDynamicValue, oldSearchDynamicValue ) {
     if ( newSearchDynamicValue && !oldSearchDynamicValue ) {
-      afterNextRender(this.shadowRoot.querySelector('#searchSelf'), () => {
+      afterNextRender(this, () => {
         if ( this.items && this.items.length > 0 ) {
           this._resizeItemListHeight();
         }
@@ -1272,7 +1271,8 @@ class CasperSelect extends PolymerElement {
     if ( this.items.length > 0 ) {
       this.filterItems(undefined, true);
 
-      afterNextRender(this.searchInput, () => {
+      afterNextRender(this, () => {
+        this._valueChanged(this.value);
         this._resizeItemListHeight();
         this._resizeItemListWidth();
       });
@@ -1283,7 +1283,7 @@ class CasperSelect extends PolymerElement {
       }
     } else {
       if (typeof this._ignoreDisabledItems === "undefined" || this._ignoreDisabledItems === false ) {
-        afterNextRender(this.searchInput, () => {
+        afterNextRender(this, () => {
           this._unsetValueInInput();
         });
       }
@@ -1520,7 +1520,7 @@ class CasperSelect extends PolymerElement {
     this._resizeItemListHeight();
     this.openDropdown();
 
-    afterNextRender(this.searchInput, () => {
+    afterNextRender(this, () => {
       this._debounceFocus(0);
     });
   }
@@ -1857,7 +1857,7 @@ class CasperSelect extends PolymerElement {
 
       const triggeredFromSearch = eventSource === 'search';
 
-      afterNextRender(this.searchInput, () => {
+      afterNextRender(this, () => {
         // Used to not trigger an additional query for a repeated search for when the user opens the select.
         if (triggeredFromSearch && this.searchInput && this.searchInput.value === this._lastQuery) return;
 
@@ -1994,11 +1994,7 @@ class CasperSelect extends PolymerElement {
     }
 
     afterNextRender(this, () => {
-      if (value !== null
-        && value !== undefined
-        && this.items
-        && this.items.length > 0
-      ) {
+      if (value !== null && value !== undefined && this.items && this.items.length > 0) {
         const valuesToSelect = !this.multiSelection ? [value] : value.split(this.multiSelectionValueSeparator);
         this._findAndSelectItems(valuesToSelect);
       }
@@ -2082,6 +2078,8 @@ class CasperSelect extends PolymerElement {
         ? selectedIndexes[0]
         : Math.min(...selectedIndexes);
     }
+
+    this.$.dropdownItems.scrollToIndex(this._selectedIndex);
 
     // Only set the value in the search input for single-selection.
     if (!this.multiSelection && !this._searchInputFiltering) this._setValueInInput();
