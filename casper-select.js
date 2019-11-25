@@ -214,6 +214,7 @@ class CasperSelect extends PolymerElement {
         horizontal-align="auto"
         template-style="[[templateStyle]]"
         with-backdrop$="[[noCancelOnOutsideClick]]"
+        no-cancel-on-esc-key
         no-cancel-on-outside-click$="[[noCancelOnOutsideClick]]">
         <!--In this case, a paper-input will be rendered inside the dropdown itself-->
         <template is="dom-if" if="[[searchCombo]]">
@@ -772,12 +773,14 @@ class CasperSelect extends PolymerElement {
       }
 
       this.opened = false;
-      if ( !this.multiSelection && ( this.searchDynamic || this.searchInline ) ) {
+      if ( !this.multiSelection ) {
         this.lastSelectedItems = this._selectedItems;
-        if ( this._selectedItems !== undefined ) {
-          this._setValueInInput();
-        } else {
-          this._clearValueInput();
+        if ( this.searchDynamic || this.searchInline ) {
+          if ( this._selectedItems !== undefined ) {
+            this._setValueInInput();
+          } else {
+            this._clearValueInput();
+          }
         }
       }
     // Opening
