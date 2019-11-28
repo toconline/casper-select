@@ -645,6 +645,14 @@ class CasperSelect extends PolymerElement {
         value: false
       },
       /**
+       * Do not confirm selection with tab
+       * @type {Boolean}
+       */
+      noConfirmOnTabKey: {
+        type: Boolean,
+        value: false
+      },
+      /**
        * JSON API resource to use in the web socket calls
        * @type {String}
        */
@@ -817,6 +825,7 @@ class CasperSelect extends PolymerElement {
   }
 
   _setValueInInput () {
+    if (this.searchCombo) return;
     this._tempFiltering = this._tempFiltering || this.filtering;
     this.filtering = false;
 
@@ -833,7 +842,7 @@ class CasperSelect extends PolymerElement {
   }
 
   _unsetValueInInput () {
-    if (!this.searchInput) return;
+    if (!this.searchInput || this.searchCombo) return;
 
     this.searchInput.value = this._lastQuery || '';
     this.searchInput.readonly = false;
@@ -1066,6 +1075,10 @@ class CasperSelect extends PolymerElement {
         break;
       case  9: // tab
       case 13: // enter
+        if (this.noConfirmOnTabKey && key == 9) {
+          event.preventDefault();
+          return;
+        }
         this._closingKey = key == 13 ? 'enter' : (event.shiftKey === true ? 'shift+tab' : 'tab');
         if ( !this.multiSelection ) {
           this.lastSelectedItems = this._selectedItems;
@@ -1274,7 +1287,10 @@ class CasperSelect extends PolymerElement {
       this.filterItems(undefined, true);
 
       afterNextRender(this, () => {
-        this._valueChanged(this.value);
+        if (this.__initialSetValue && !this.__initialSetValueWasSet) {
+          this.__initialSetValueWasSet = true;
+          this._valueChanged(this.__initialSetValue);
+        }
         this._resizeItemListHeight();
         this._resizeItemListWidth();
       });
@@ -1697,7 +1713,6 @@ class CasperSelect extends PolymerElement {
           return;
         }
       }
-
       this.$.dropdownItems.style.maxHeight = this.listHeight;
     }
   }
@@ -1821,6 +1836,7 @@ class CasperSelect extends PolymerElement {
   }
 
   _listItemInnerHTML (itemContents) {
+
     const iconElement = document.createElement('iron-icon');
     iconElement.setAttribute('icon', 'casper-icons:check');
 
@@ -1990,6 +2006,10 @@ class CasperSelect extends PolymerElement {
   }
 
   _valueChanged (value) {
+    if (!this.__initialSetValue && value !== null && value !== undefined && this.items && this.items.length == 0) {
+      this.__initialSetValue = value;
+      return;
+    }
     if (this._skipValueObserver === value) {
       this._skipValueObserver = undefined;
       return;
@@ -2081,7 +2101,7 @@ class CasperSelect extends PolymerElement {
         : Math.min(...selectedIndexes);
     }
 
-    this.$.dropdownItems.scrollToIndex(this._selectedIndex);
+    afterNextRender(this, () => this.$.dropdownItems.scrollToIndex(this._selectedIndex));
 
     // Only set the value in the search input for single-selection.
     if (!this.multiSelection && !this._searchInputFiltering) this._setValueInInput();
@@ -2101,12 +2121,15 @@ class CasperSelect extends PolymerElement {
   }
 
   restampTemplate () {
-    if (!this.template || !this.filteredItems) return;
+    if ( !this.template || !this.items || !this.filteredItems ) return;
 
     let filteredItems = [];
+
     for ( let [key, item] of Object.entries(this.items) ) {
-      item._csHTML = this._listItemInnerHTML(this.__stampItemTemplate(item));
-      filteredItems.push(item);
+      if (this.filteredItems.some(filteredItem => filteredItem[this.keyColumn] === item[this.keyColumn])) {
+        item._csHTML = this._listItemInnerHTML(this.__stampItemTemplate(item));
+        filteredItems.push(item);
+      }
     }
 
     this.filteredItems = [];
