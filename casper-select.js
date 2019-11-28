@@ -2006,7 +2006,7 @@ class CasperSelect extends PolymerElement {
   }
 
   _valueChanged (value) {
-    if (!this.__initialSetValue && value !== null && value !== undefined && this.items && this.items.length == 0) {
+    if (!this.__initialSetValue && value !== null && value !== undefined && (!this.items || this.items && this.items.length == 0)) {
       this.__initialSetValue = value;
       return;
     }
