@@ -1242,7 +1242,7 @@ class CasperSelect extends PolymerElement {
   }
 
   _itemColumn (item) {
-    return this.template && this._templateToReplace !== undefined
+    return this.template
       ? this._listItemInnerHTML(this.__stampItemTemplate(item))
       : this._listItemInnerHTML(item[this.itemColumn]);
   }
@@ -1259,13 +1259,6 @@ class CasperSelect extends PolymerElement {
       // The following object change will trigger the observer again, so we do an early return.
       this.items = newItems.map((element, index) => ({ id: index, name: element }));
       return;
-    }
-    if ( this.template && this.items.length > 0 ) {
-      let found = [], rxp = /\{([^}]+)\}/g, curMatch;
-      while ( (curMatch = rxp.exec( this.template )) ) {
-        found.push( curMatch[1] );
-      }
-      this._templateToReplace = found;
     }
 
     for ( let [key, item] of Object.entries(this.items) ) {
@@ -2108,13 +2101,16 @@ class CasperSelect extends PolymerElement {
   }
 
   restampTemplate () {
-    if (!this.template || !this.items) return;
+    if (!this.template || !this.filteredItems) return;
 
-    this.items.forEach(item => {
+    let filteredItems = [];
+    for ( let [key, item] of Object.entries(this.items) ) {
       item._csHTML = this._listItemInnerHTML(this.__stampItemTemplate(item));
-    });
+      filteredItems.push(item);
+    }
 
-    this.filterItems('', true, true);
+    this.filteredItems = [];
+    this.filteredItems = JSON.parse(JSON.stringify(filteredItems));
   }
 
   __stampItemTemplate (item) {
