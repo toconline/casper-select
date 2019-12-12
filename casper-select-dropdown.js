@@ -179,6 +179,14 @@ class CasperSelectDropdown extends mixinBehaviors([IronOverlayBehavior, IronFitB
       .dropdown-pagination-container casper-button {
         margin: 0;
       }
+
+      .dropdown-group-buttons {
+        display: flex;
+        flex-direction: row-reverse;
+        align-self: flex-end;
+        justify-content: space-between;
+        width: 215px
+      }
     </style>
     <slot></slot>
   `;

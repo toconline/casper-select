@@ -258,10 +258,18 @@ class CasperSelect extends PolymerElement {
 
             <!--Button to close the dropdown when multi-selection is enabled-->
             <template is="dom-if" if="[[_displayDropdownFooterButton(multiSelection, noCancelOnOutsideClick)]]">
-              <casper-button size="s" on-click="closeDropdown">
-                [[_translations.multiSelectionCloseButton]]
-              </casper-button>
+              <div class="dropdown-group-buttons">
+                <casper-button size="s" on-click="closeDropdown">
+                  [[_translations.multiSelectionCloseButton]]
+                </casper-button>
+                <template is="dom-if" if="[[noCancelOnOutsideClick]]">
+                  <casper-button size="s" on-click="closeDropdownWithoutSaving">
+                  [[_translations.closeWithoutSavingButton]]
+                  </casper-button>
+                </template>
+              </div>
             </template>
+
           </div>
         </template>
       </casper-select-dropdown>
@@ -666,6 +674,14 @@ class CasperSelect extends PolymerElement {
        */
       lazyLoadFilterFields: Array,
       /**
+       * The custom SQL that will always be included in the filter part of the URL.
+       * @type {String}
+       */
+      lazyLoadCustomFilters: {
+        type: Object,
+        value: {}
+      },
+      /**
        * The number of records to fetch each time the socket is called.
        * @type {Number}
        */
@@ -739,7 +755,7 @@ class CasperSelect extends PolymerElement {
     this.$.dropdown.addEventListener('opened-changed', event => this._onOpenedChanged(event));
     this.$.dropdown.addEventListener('iron-overlay-canceled', event => this._cancelOverlay(event));
 
-    this._translations = { multiSelectionCloseButton: 'Concluído' };
+    this._translations = { multiSelectionCloseButton: 'Concluído', closeWithoutSavingButton: 'Cancelar' };
 
     // Detect if the browser supports the IntersectionObserver API.
     if (this._browserSupportsIntersectionObserver()) {
@@ -877,6 +893,7 @@ class CasperSelect extends PolymerElement {
   }
 
   _selectedItemsChanged ( newSelectedItems ) {
+    if (this.__ignoreSelectedItemsChanged) return;
     this._shouldLabelFloat = this._multiSelectionHasItems();
 
     let listItems = this.multiSelectionTagsElementParent
@@ -1105,23 +1122,7 @@ class CasperSelect extends PolymerElement {
         break;
       case 27: // escape
         this._closingKey = 'esc';
-        if ( !this.multiSelection ) {
-          this._selectedItems = this.lastSelectedItems;
-          this.ironListSelectedItems = [];
-          this.ironListSelectedItems = this._selectedItems;
-          if ( this._selectedItems === undefined ) {
-            this._clearValueInput();
-          } else {
-            this._setValueInInput();
-          }
-        }
-        if ( this.opened ) {
-          this.closeDropdown();
-        } else {
-          if ( this.searchInput ) {
-            this.searchInput.blur();
-          }
-        }
+        this.closeDropdownWithoutSaving();
         break;
       case 37: // left
         if ( this._doesntExistYet ) {
@@ -1439,8 +1440,12 @@ class CasperSelect extends PolymerElement {
       this.$.dropdownItems.removeAttribute('multi-selection');
       this.multiSelectionTags = false;
     }
+    if (this._selectedItems === undefined) {
+      this.__ignoreSelectedItemsChanged = true;
+    }
     this._selectedItems = [];
     this.lastSelectedItems = [];
+    this.__ignoreSelectedItemsChanged = false;
   }
 
   _setMultiSelectionTarget () {
@@ -1517,6 +1522,26 @@ class CasperSelect extends PolymerElement {
 
   closeDropdown () {
     this.$.dropdown.close();
+  }
+
+  closeDropdownWithoutSaving () {
+    if ( !this.multiSelection ) {
+      this._selectedItems = this.lastSelectedItems;
+      this.ironListSelectedItems = [];
+      this.ironListSelectedItems = this._selectedItems;
+      if ( this._selectedItems === undefined ) {
+        this._clearValueInput();
+      } else {
+        this._setValueInInput();
+      }
+    }
+    if ( this.opened ) {
+      this.closeDropdown();
+    } else {
+      if ( this.searchInput ) {
+        this.searchInput.blur();
+      }
+    }
   }
 
   attachTo (element, options) {
@@ -1969,27 +1994,41 @@ class CasperSelect extends PolymerElement {
       ]);
     }
 
+
+    let filterParams;
+    if (this.lazyLoadCustomFilters) {
+      filterParams = Object.values(this.lazyLoadCustomFilters).filter(field => field).join(' AND ');
+    }
+
     if (this.searchInput && this.searchInput.value && this.lazyLoadFilterFields) {
       // Escape the % characters that have a special meaning in the ILIKE clause.
       let escapedSearchInputValue = this.searchInput.value.replace(/[%\\]/g, '\$&');
       escapedSearchInputValue = escapedSearchInputValue.replace(/[&]/g, '_');
 
       // Build the filter parameters.
-      const filterParams = this.lazyLoadFilterFields.map(filterField => {
-        if (filterField.constructor === String) {
-          return `${filterField}::TEXT ILIKE '%${escapedSearchInputValue}%'`;
-        }
-
-        if (filterField.constructor === Object && filterField.field && filterField.filterType) {
-          switch (filterField.filterType) {
-            case 'exact': return `${filterField.field}::TEXT ILIKE '${escapedSearchInputValue}'`;
-            case 'endsWith': return `${filterField.field}::TEXT ILIKE '%${escapedSearchInputValue}'`;
-            case 'contains': return `${filterField.field}::TEXT ILIKE '%${escapedSearchInputValue}%'`;
-            case 'startsWith': return `${filterField.field}::TEXT ILIKE '${escapedSearchInputValue}%'`;
+      const customFilterParams = this.lazyLoadFilterFields
+        .filter(filterField => !Object.keys(this.lazyLoadCustomFilters).includes(filterField.constructor === String ? filterField : filterField.field))
+        .map(filterField => {
+          if (filterField.constructor === String) {
+            return `${filterField}::TEXT ILIKE '%${escapedSearchInputValue}%'`;
           }
-        }
 
-      }).join(' OR ');
+          if (filterField.constructor === Object && filterField.field && filterField.filterType) {
+            switch (filterField.filterType) {
+              case 'exact': return `${filterField.field}::TEXT ILIKE '${escapedSearchInputValue}'`;
+              case 'endsWith': return `${filterField.field}::TEXT ILIKE '%${escapedSearchInputValue}'`;
+              case 'contains': return `${filterField.field}::TEXT ILIKE '%${escapedSearchInputValue}%'`;
+              case 'startsWith': return `${filterField.field}::TEXT ILIKE '${escapedSearchInputValue}%'`;
+            }
+          }
+        }).join(' OR ');
+
+      if (customFilterParams) {
+        filterParams += ` AND (${customFilterParams})`;
+      }
+    }
+
+    if (filterParams) {
       resourceUrlParams.push(`${this.lazyLoadFilterAttr}="(${filterParams})"`);
     }
 
@@ -1997,6 +2036,7 @@ class CasperSelect extends PolymerElement {
     return this.lazyLoadResource.includes('?')
       ? `${this.lazyLoadResource}&${resourceUrlParams.join('&')}`
       : `${this.lazyLoadResource}?${resourceUrlParams.join('&')}`;
+
   }
 
   _lazyLoadResourceChanged () {
