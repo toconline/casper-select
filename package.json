@@ -12,13 +12,13 @@
   "dependencies": {
     "@casper2020/casper-button": "^1.x",
     "@casper2020/casper-icons": "^1.x",
-    "@polymer/iron-fit-behavior": "^3.0.1",
-    "@polymer/iron-input": "^3.0.0",
-    "@polymer/iron-list": "^3.0.2",
-    "@polymer/iron-overlay-behavior": "^3.0.2",
-    "@polymer/paper-input": "^3.0.0",
-    "@polymer/paper-spinner": "^3.0.2",
-    "@polymer/polymer": "^3.0.0"
+    "@polymer/iron-fit-behavior": "^3.x",
+    "@polymer/iron-input": "^3.x",
+    "@polymer/iron-list": "^3.x",
+    "@polymer/iron-overlay-behavior": "^3.x",
+    "@polymer/paper-input": "^3.x",
+    "@polymer/paper-spinner": "^3.x",
+    "@polymer/polymer": "^3.x"
   },
   "devDependencies": {
     "@polymer/iron-demo-helpers": "^3.0.0",
