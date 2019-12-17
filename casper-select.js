@@ -1995,10 +1995,7 @@ class CasperSelect extends PolymerElement {
     }
 
 
-    let filterParams;
-    if (this.lazyLoadCustomFilters) {
-      filterParams = Object.values(this.lazyLoadCustomFilters).filter(field => field).join(' AND ');
-    }
+    let filterParams = Object.values(this.lazyLoadCustomFilters || {}).filter(field => field).join(' AND ');
 
     if (this.searchInput && this.searchInput.value && this.lazyLoadFilterFields) {
       // Escape the % characters that have a special meaning in the ILIKE clause.
@@ -2024,7 +2021,9 @@ class CasperSelect extends PolymerElement {
         }).join(' OR ');
 
       if (customFilterParams) {
-        filterParams += ` AND (${customFilterParams})`;
+        filterParams
+          ? filterParams += ` AND (${customFilterParams})`
+          : filterParams += customFilterParams;
       }
     }
 
