@@ -2004,7 +2004,7 @@ class CasperSelect extends PolymerElement {
 
       // Build the filter parameters.
       const customFilterParams = this.lazyLoadFilterFields
-        .filter(filterField => !Object.keys(this.lazyLoadCustomFilters).includes(filterField.constructor === String ? filterField : filterField.field))
+        .filter(filterField => !Object.keys(this.lazyLoadCustomFilters || {}).includes(filterField.constructor === String ? filterField : filterField.field))
         .map(filterField => {
           if (filterField.constructor === String) {
             return `${filterField}::TEXT ILIKE '%${escapedSearchInputValue}%'`;
