@@ -20,11 +20,10 @@
 
 import { mixinBehaviors } from '@polymer/polymer/lib/legacy/class.js';
 import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
-import { IronFitBehavior } from '@polymer/iron-fit-behavior/iron-fit-behavior.js';
-import { IronOverlayBehavior } from '@polymer/iron-overlay-behavior/iron-overlay-behavior.js';
+import { CasperOverlayBehavior } from '@casper2020/casper-overlay-behavior/casper-overlay-behavior.js';
 
-class CasperSelectDropdown extends mixinBehaviors([IronOverlayBehavior, IronFitBehavior], PolymerElement) {
-  static get template() {
+class CasperSelectDropdown extends mixinBehaviors(CasperOverlayBehavior, PolymerElement) {
+  static get template () {
     return html`
       <style>
         :host {
