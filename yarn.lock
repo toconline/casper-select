@@ -24,6 +24,13 @@
     "@polymer/iron-icons" "^3.x"
     "@polymer/polymer" "^3.x"
 
+"@casper2020/casper-overlay-behavior@^1.x":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@casper2020/casper-overlay-behavior/-/casper-overlay-behavior-1.0.0.tgz#a436b62700631fbbca0e72afa6d97859058813a7"
+  integrity sha512-mSzHjid+pMGdmEsWpuWPrKnglEtinqLIEeun/PBkWLMZBveewrcS7vbyVryUd8G5OiIHLW0DRW42De4GgnO5Uw==
+  dependencies:
+    "@polymer/iron-overlay-behavior" "^3.x"
+
 "@polymer/font-roboto@^3.0.0-pre.25", "@polymer/font-roboto@^3.0.1":
   version "3.0.2"
   resolved "https://registry.yarnpkg.com/@polymer/font-roboto/-/font-roboto-3.0.2.tgz#80cdaa7225db2359130dfb2c6d9a3be1820020c3"
