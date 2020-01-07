@@ -1031,8 +1031,11 @@ class CasperSelect extends PolymerElement {
     return !items || items.length === 0 ? true : false;
   }
 
-  _clearSearch () {
+  _clearSearch (e) {
     if ( this.searchInput ) {
+      if (e && this.searchCombo && this.searchInput.value == "") {
+        return this.closeDropdownWithoutSaving();
+      }
       this.searchInput.value = "";
     }
     const sfxIcon = this.shadowRoot.querySelector('#suffixIcon');
