@@ -41,7 +41,7 @@ class CasperSelectDropdown extends mixinBehaviors(CasperOverlayBehavior, Polymer
                       rgba(28, 50, 79, 0.38) 0px 8px 24px -4px;
         }
 
-        iron-icon#suffixIcon {
+        casper-icon#suffixIcon {
           width: 15px;
           height: 15px;
           color: #525252;
@@ -57,9 +57,10 @@ class CasperSelectDropdown extends mixinBehaviors(CasperOverlayBehavior, Polymer
           @apply --casper-select-dropdown-no-items;
         }
 
-        #dropdown-no-items iron-icon {
+        #dropdown-no-items casper-icon {
           width: 75px;
           height: 75px;
+          margin-bottom: 10px;
         }
 
         #ironScrollThreshold {
@@ -138,13 +139,13 @@ class CasperSelectDropdown extends mixinBehaviors(CasperOverlayBehavior, Polymer
         @apply --casper-select-dropdown-item-icon;
       }
 
-      #dropdownItems .dropdown-item .dropdown-item-icon iron-icon {
+      #dropdownItems .dropdown-item .dropdown-item-icon casper-icon {
         width: 100%;
         height: 100%;
         display: none;
       }
 
-      #dropdownItems .dropdown-item.dropdown-item-selected .dropdown-item-icon iron-icon {
+      #dropdownItems .dropdown-item.dropdown-item-selected .dropdown-item-icon casper-icon {
         display: block;
       }
 

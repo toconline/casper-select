@@ -19,9 +19,8 @@
 */
 
 import './casper-select-dropdown.js';
-import '@casper2020/casper-icons/casper-icons.js';
+import '@casper2020/casper-icons/casper-icon.js';
 import '@casper2020/casper-button/casper-button.js';
-import '@polymer/iron-icon/iron-icon.js';
 import '@polymer/iron-list/iron-list.js';
 import '@polymer/iron-input/iron-input.js';
 import '@polymer/paper-input/paper-input.js';
@@ -72,7 +71,7 @@ class CasperSelect extends PolymerElement {
           display: flex;
         }
 
-        .casper-single-selection .input-icons iron-icon {
+        .casper-single-selection .input-icons casper-icon {
           width: 15px;
           height: 15px;
           color: #525252;
@@ -80,7 +79,7 @@ class CasperSelect extends PolymerElement {
           @apply --casper-select-single-paper-input-icon;
         }
 
-        .casper-single-selection .input-icons iron-icon:hover {
+        .casper-single-selection .input-icons casper-icon:hover {
           color: black;
           cursor: pointer;
           @apply --casper-select-single-paper-input-icon-hover;
@@ -137,7 +136,7 @@ class CasperSelect extends PolymerElement {
           display: none;
         }
 
-        .casper-multi-selection .list-items .list-item button iron-icon {
+        .casper-multi-selection .list-items .list-item button casper-icon {
           width: 10px;
           height: 10px;
         }
@@ -194,9 +193,9 @@ class CasperSelect extends PolymerElement {
               <div class="input-icons" slot="suffix">
                 <!--Only display the first icon if there are selected items-->
                 <template is="dom-if" if="[[_shouldDisplayClearIcon(_selectedItems)]]">
-                  <iron-icon icon="casper-icons:clear" on-click="_clearSelectIconClicked"></iron-icon>
+                  <casper-icon icon="fa-light:times" on-click="_clearSelectIconClicked"></casper-icon>
                 </template>
-                <iron-icon icon="casper-icons:arrow-drop-down"></iron-icon>
+                <casper-icon icon="fa-regular:angle-down"></casper-icon>
               </div>
             </paper-input>
           </div>
@@ -219,7 +218,7 @@ class CasperSelect extends PolymerElement {
         <!--In this case, a paper-input will be rendered inside the dropdown itself-->
         <template is="dom-if" if="[[searchCombo]]">
           <paper-input tabindex="1" no-label-float="" id="searchInput" label="[[searchComboPlaceholder]]">
-            <iron-icon icon="casper-icons:clear" slot="suffix" id="suffixIcon"></iron-icon>
+            <casper-icon icon="fa-light:times" slot="suffix" id="suffixIcon"></casper-icon>
           </paper-input>
         </template>
 
@@ -240,7 +239,7 @@ class CasperSelect extends PolymerElement {
         <!--Placeholder for the cases when there are no items-->
         <template is="dom-if" if="[[noVisibleItems]]">
           <div id="dropdown-no-items">
-            <iron-icon icon="casper-icons:empty-data"></iron-icon>
+            <casper-icon icon="fa-light:clipboard"></casper-icon>
             [[emptyListMessage]]
           </div>
         </template>
@@ -909,8 +908,8 @@ class CasperSelect extends PolymerElement {
             const itemButton = document.createElement('button');
             const itemSpan = document.createElement('span');
 
-            const itemButtonIcon = document.createElement('iron-icon');
-            itemButtonIcon.setAttribute('icon', 'casper-icons:clear');
+            const itemButtonIcon = document.createElement('casper-icon');
+            itemButtonIcon.setAttribute('icon', 'fa-light:times');
 
             itemButton.appendChild(itemButtonIcon);
             itemButton.dataset.key = el[this.keyColumn];
@@ -1865,8 +1864,8 @@ class CasperSelect extends PolymerElement {
 
   _listItemInnerHTML (itemContents) {
 
-    const iconElement = document.createElement('iron-icon');
-    iconElement.setAttribute('icon', 'casper-icons:check');
+    const iconElement = document.createElement('casper-icon');
+    iconElement.setAttribute('icon', 'fa-light:check');
 
     const textContainer = document.createElement('div');
     textContainer.classList.add('dropdown-item-text');
