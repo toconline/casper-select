@@ -1749,10 +1749,10 @@ class CasperSelect extends PolymerElement {
     if (this.listWidth) {
       // This means the user specified a width via properties.
       this.$.dropdown.style.width = this.listWidth;
-    } else if (this.targetElement && (this.fixedContainerWidth || !this.items || this.items.length === 0)) {
+    } else if (this.$.dropdown.positionTarget && (this.fixedContainerWidth || !this.items || this.items.length === 0)) {
       // This means the dropdown will try to ajust to the container's width.
-      this.$.dropdown.style.width = `${this.targetElement.offsetWidth}px`;
-    } else if (this.targetElement && this.items && this.items.length > 0) {
+      this.$.dropdown.style.width = `${this.$.dropdown.positionTarget.offsetWidth}px`;
+    } else if (this.$.dropdown.positionTarget && this.items && this.items.length > 0) {
       // Fetch the item which has the most characters.
       const longestItem = this.items.reduce((previousItem, nextItem) => (
         nextItem[this.itemColumn].length > previousItem[this.itemColumn].length ? nextItem : previousItem
@@ -1762,7 +1762,7 @@ class CasperSelect extends PolymerElement {
 
       // Use the highest width between the container or the measure element's current width plus the 14px icon, the
       // 8px container's padding (4px on both sides) and some additional 20px margin.
-      this.$.dropdown.style.width = `${Math.max(this.targetElement.offsetWidth, this.$.measureDropdownItem.offsetWidth + 42)}px`;
+      this.$.dropdown.style.width = `${Math.max(this.$.dropdown.positionTarget.offsetWidth, this.$.measureDropdownItem.offsetWidth + 42)}px`;
     }
 
     this.$.dropdown.notifyResize();
