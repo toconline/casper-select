@@ -808,6 +808,7 @@ class CasperSelect extends PolymerElement {
       }
     // Opening
     } else {
+      this._resizeItemListWidth();
       // If the we are opening the casper-select-dropdown and the lazy load was delayed initially, fetch the items now.
       if (this._lazyLoadFirstFetch === undefined && this.delayLazyLoad) {
         this._loadMoreItems('scroll');
@@ -1750,7 +1751,7 @@ class CasperSelect extends PolymerElement {
       this.$.dropdown.style.width = this.listWidth;
     } else if (this.targetElement && (this.fixedContainerWidth || !this.items || this.items.length === 0)) {
       // This means the dropdown will try to ajust to the container's width.
-        this.$.dropdown.style.width = `${this.targetElement.offsetWidth}px`;
+      this.$.dropdown.style.width = `${this.targetElement.offsetWidth}px`;
     } else if (this.targetElement && this.items && this.items.length > 0) {
       // Fetch the item which has the most characters.
       const longestItem = this.items.reduce((previousItem, nextItem) => (
