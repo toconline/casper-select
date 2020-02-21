@@ -63,6 +63,10 @@ class CasperSelectDropdown extends mixinBehaviors(CasperOverlayBehavior, Polymer
           margin-bottom: 10px;
         }
 
+        #dropdown-suffix {
+          flex-basis: 100%;
+        }
+
         #ironScrollThreshold {
         overflow: auto;
         -ms-overflow-style: -ms-autohiding-scrollbar;
@@ -159,6 +163,7 @@ class CasperSelectDropdown extends mixinBehaviors(CasperOverlayBehavior, Polymer
         padding: 5px;
         display: flex;
         color: #737373;
+        flex-wrap: wrap;
         line-height: 30px;
         font-size: 0.85em;
         position: relative;

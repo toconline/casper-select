@@ -33,7 +33,7 @@ import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
 import { afterNextRender } from '@polymer/polymer/lib/utils/render-status.js';
 
 class CasperSelect extends PolymerElement {
-  static get template() {
+  static get template () {
     return html`
       <style>
         :host {
@@ -222,6 +222,8 @@ class CasperSelect extends PolymerElement {
           </paper-input>
         </template>
 
+        <div id="dropdown-prefix"></div>
+
         <div id="dropdownScroller">
           <iron-list
             id="dropdownItems"
@@ -244,8 +246,13 @@ class CasperSelect extends PolymerElement {
           </div>
         </template>
 
-        <template is="dom-if" if="[[_shouldDisplayPaginationAndOrClose(multiSelection, lazyLoadResource)]]">
+        <template is="dom-if" if="[[_shouldDisplayPaginationAndOrClose(multiSelection, lazyLoadResource, __hasSuffixAssignedNodes)]]" restamp>
           <div class="dropdown-pagination-container">
+
+            <!--Displays the suffix elements-->
+            <template is="dom-if" if="[[__hasSuffixAssignedNodes]]">
+              <div id="dropdown-suffix"></div>
+            </template>
             <!--Displays the number of visible results vs the total-->
             <div class="dropdown-pagination">
               <template is="dom-if" if="[[lazyLoadResource]]">
@@ -769,25 +776,32 @@ class CasperSelect extends PolymerElement {
       const prefixSlotNodes = this.shadowRoot.querySelector('slot[name="dropdown-prefix"]').assignedNodes();
       const suffixSlotNodes = this.shadowRoot.querySelector('slot[name="dropdown-suffix"]').assignedNodes();
 
-      if (prefixSlotNodes.length > 0) prefixSlotNodes.reverse().forEach(slotNode => this.$.dropdown.shadowRoot.prepend(slotNode));
-      if (suffixSlotNodes.length > 0) suffixSlotNodes.forEach(slotNode => this.$.dropdown.shadowRoot.appendChild(slotNode));
-    });
+      this.__hasSuffixAssignedNodes = suffixSlotNodes.length > 0;
 
-    // Do not fetch the items if the delayLazyLoad flag is set to true.
-    if (this.lazyLoadResource && !this.delayLazyLoad) {
-      this._loadMoreItems('scroll');
-    }
+      afterNextRender(this, () => {
+        const dropdownPrefix = this.$.dropdown.shadowRoot.querySelector('#dropdown-prefix');
+        const dropdownSuffix = this.$.dropdown.shadowRoot.querySelector('#dropdown-suffix');
+
+        if (prefixSlotNodes.length > 0) prefixSlotNodes.forEach(slotNode => dropdownPrefix.appendChild(slotNode));
+        if (suffixSlotNodes.length > 0) suffixSlotNodes.forEach(slotNode => dropdownSuffix.appendChild(slotNode));
+      });
+
+      // Do not fetch the items if the delayLazyLoad flag is set to true.
+      if (this.lazyLoadResource && !this.delayLazyLoad) {
+        this._loadMoreItems('scroll');
+      }
+    });
   }
 
   _cancelOverlay (e) {
-    if  ( e.composedPath().includes(this.searchInput) ) {
+    if (e.composedPath().includes(this.searchInput)) {
       e.preventDefault();
     }
   }
 
   _onOpenedChanged (e) {
     // Closing
-    if ( e.detail.value === false ) {
+    if (e.detail.value === false) {
       this.shadowRoot.appendChild(this.$.dropdown);
 
       // Clear the interval for browsers that don't support the IntersectionObserver API.
@@ -796,17 +810,17 @@ class CasperSelect extends PolymerElement {
       }
 
       this.opened = false;
-      if ( !this.multiSelection ) {
+      if (!this.multiSelection) {
         this.lastSelectedItems = this._selectedItems;
-        if ( this.searchDynamic || this.searchInline ) {
-          if ( this._selectedItems !== undefined ) {
+        if (this.searchDynamic || this.searchInline) {
+          if (this._selectedItems !== undefined) {
             this._setValueInInput();
           } else {
             this._clearValueInput();
           }
         }
       }
-    // Opening
+      // Opening
     } else {
       this._resizeItemListWidth();
       // If the we are opening the casper-select-dropdown and the lazy load was delayed initially, fetch the items now.
@@ -830,7 +844,7 @@ class CasperSelect extends PolymerElement {
       }, 16);
 
       this.opened = true;
-      if ( !this.multiSelection && ( this.searchDynamic || this.searchInline ) ) {
+      if (!this.multiSelection && (this.searchDynamic || this.searchInline)) {
         this._unsetValueInInput();
       }
     }
@@ -863,20 +877,20 @@ class CasperSelect extends PolymerElement {
     this.searchInput.value = this._lastQuery || '';
     this.searchInput.readonly = false;
     this._resizeItemListHeight();
-    if ( typeof this._tempFiltering !== "undefined" ) {
+    if (typeof this._tempFiltering !== "undefined") {
       this.filtering = this._tempFiltering;
       this._tempFiltering = undefined;
     }
   }
 
-  _isDynamicSearch ( searchInline, searchCombo ) {
-    return ( searchInline === false && searchCombo === false );
+  _isDynamicSearch (searchInline, searchCombo) {
+    return (searchInline === false && searchCombo === false);
   }
 
-  _searchDynamicChanged ( newSearchDynamicValue, oldSearchDynamicValue ) {
-    if ( newSearchDynamicValue && !oldSearchDynamicValue ) {
+  _searchDynamicChanged (newSearchDynamicValue, oldSearchDynamicValue) {
+    if (newSearchDynamicValue && !oldSearchDynamicValue) {
       afterNextRender(this, () => {
-        if ( this.items && this.items.length > 0 ) {
+        if (this.items && this.items.length > 0) {
           this._resizeItemListHeight();
         }
         this._setMultiSelectionTarget();
@@ -892,7 +906,7 @@ class CasperSelect extends PolymerElement {
     }
   }
 
-  _selectedItemsChanged ( newSelectedItems ) {
+  _selectedItemsChanged (newSelectedItems) {
     if (this.__ignoreSelectedItemsChanged) return;
     this._shouldLabelFloat = this._multiSelectionHasItems();
 
@@ -900,11 +914,11 @@ class CasperSelect extends PolymerElement {
       ? this.multiSelectionTagsElementParent
       : this.shadowRoot.querySelector('#dynamicListWithInput');
 
-    if ( this.multiSelection && this.multiSelectionTags ) {
-      if ( listItems ) {
+    if (this.multiSelection && this.multiSelectionTags) {
+      if (listItems) {
         this._removeDynamicListSelectedValues(listItems);
-        if ( newSelectedItems !== undefined && newSelectedItems.length > 0 ) {
-          newSelectedItems.forEach( el => {
+        if (newSelectedItems !== undefined && newSelectedItems.length > 0) {
+          newSelectedItems.forEach(el => {
             const item = document.createElement('div');
             const itemButton = document.createElement('button');
             const itemSpan = document.createElement('span');
@@ -929,17 +943,17 @@ class CasperSelect extends PolymerElement {
     this.$.dropdown.refit();
     this._setValue();
 
-    if ( !this.disabled ) {
+    if (!this.disabled) {
       this.dispatchEvent(new CustomEvent('casper-select-changed', { detail: { selectedItems: newSelectedItems } }));
     }
   }
 
-  _removeDynamicListSelectedValues( list ) {
+  _removeDynamicListSelectedValues (list) {
     let elements = this.multiSelectionTagsElementParent
       ? list.querySelectorAll('div')
       : list.querySelectorAll('div:not(:last-child)');
 
-    if ( elements.length > 0 ) {
+    if (elements.length > 0) {
       elements.forEach(element => list.removeChild(element));
     }
   }
@@ -947,16 +961,16 @@ class CasperSelect extends PolymerElement {
   _removeOptionFromList (event) {
     const clickedKey = event.target.parentNode.dataset.key;
 
-    for ( let [key, item] of Object.entries(this._selectedItems) ) {
-      if ( item[this.keyColumn] == clickedKey ) {
+    for (let [key, item] of Object.entries(this._selectedItems)) {
+      if (item[this.keyColumn] == clickedKey) {
         this._selectedItems.splice(key, 1);
-        this._selectedItems = JSON.parse(JSON.stringify( this._selectedItems ));
+        this._selectedItems = JSON.parse(JSON.stringify(this._selectedItems));
         break;
       }
     }
-    for ( let [key, item] of Object.entries(this.ironListSelectedItems) ) {
-      if ( item[this.keyColumn] == clickedKey ) {
-        this.$.dropdownItems.deselectItem( item );
+    for (let [key, item] of Object.entries(this.ironListSelectedItems)) {
+      if (item[this.keyColumn] == clickedKey) {
+        this.$.dropdownItems.deselectItem(item);
         break;
       }
     }
@@ -983,27 +997,27 @@ class CasperSelect extends PolymerElement {
 
     let classList = (event.composedPath()).find(element => element.classList.contains('dropdown-item')).classList;
 
-    if ( !this.selectionEnabled || classList.contains('dropdown-item-disabled') ) {
+    if (!this.selectionEnabled || classList.contains('dropdown-item-disabled')) {
       event.preventDefault();
       event.stopPropagation();
       return;
     }
 
-    if ( this.multiSelection ) {
-      if ( classList.contains('dropdown-item-selected') ) {
-        for ( let [key, item] of Object.entries(this._selectedItems) ) {
-          if ( item[this.keyColumn] == event.model.item[this.keyColumn] ) {
+    if (this.multiSelection) {
+      if (classList.contains('dropdown-item-selected')) {
+        for (let [key, item] of Object.entries(this._selectedItems)) {
+          if (item[this.keyColumn] == event.model.item[this.keyColumn]) {
             this._selectedItems.splice(key, 1);
-            this._selectedItems = JSON.parse(JSON.stringify( this._selectedItems ));
+            this._selectedItems = JSON.parse(JSON.stringify(this._selectedItems));
             return;
           }
         }
       } else {
-        if ( typeof this._selectedItems === "undefined" ) {
+        if (typeof this._selectedItems === "undefined") {
           this._selectedItems = [];
         }
         this._selectedItems.push(event.model.item);
-        this._selectedItems = JSON.parse(JSON.stringify( this._selectedItems ));
+        this._selectedItems = JSON.parse(JSON.stringify(this._selectedItems));
       }
     } else {
       if (classList.contains('dropdown-item-selected')) {
@@ -1020,7 +1034,7 @@ class CasperSelect extends PolymerElement {
       } else {
         this._selectedIndex = event.model.index;
         this._selectedItems = event.model.item;
-        if ( this.closeOnSelect ) {
+        if (this.closeOnSelect) {
           this.closeDropdown();
         }
       }
@@ -1032,14 +1046,14 @@ class CasperSelect extends PolymerElement {
   }
 
   _clearSearch (e) {
-    if ( this.searchInput ) {
+    if (this.searchInput) {
       if (e && this.searchCombo && this.searchInput.value == "") {
         return this.closeDropdownWithoutSaving();
       }
       this.searchInput.value = "";
     }
     const sfxIcon = this.shadowRoot.querySelector('#suffixIcon');
-    if ( sfxIcon ) {
+    if (sfxIcon) {
       sfxIcon.style.opacity = 0;
       sfxIcon.removeEventListener('click', this._boundClearSearch);
     }
@@ -1047,7 +1061,7 @@ class CasperSelect extends PolymerElement {
 
   _searchInputKeyPressHandler (event) {
 
-    if ( !this.smartFilter || !this.filtering || !this.searchInput ) {
+    if (!this.smartFilter || !this.filtering || !this.searchInput) {
       return;
     }
 
@@ -1075,7 +1089,7 @@ class CasperSelect extends PolymerElement {
     let key = event.keyCode;
     switch (key) {
       case 8: // backspace
-        if ( this.multiSelection
+        if (this.multiSelection
           && this._selectedItems
           && this._selectedItems.length > 0
           && this.searchInput.value.length === 0) {
@@ -1083,37 +1097,37 @@ class CasperSelect extends PolymerElement {
           this.lastSelectedItems = this.lastSelectedItems.filter(item => item[this.keyColumn] !== lastKeySelectedItemInList);
 
           this._selectedItems.splice(-1);
-          this._selectedItems = JSON.parse(JSON.stringify( this._selectedItems ));
-          for ( let [key, item] of Object.entries(this.ironListSelectedItems) ) {
-            if ( item[this.keyColumn] == lastKeySelectedItemInList ) {
-              this.$.dropdownItems.deselectItem( item );
+          this._selectedItems = JSON.parse(JSON.stringify(this._selectedItems));
+          for (let [key, item] of Object.entries(this.ironListSelectedItems)) {
+            if (item[this.keyColumn] == lastKeySelectedItemInList) {
+              this.$.dropdownItems.deselectItem(item);
               break;
             }
           }
           this.$.dropdown.refit();
         }
         break;
-      case  9: // tab
+      case 9: // tab
       case 13: // enter
         if (this.noConfirmOnTabKey && key == 9) {
           event.preventDefault();
           return;
         }
         this._closingKey = key == 13 ? 'enter' : (event.shiftKey === true ? 'shift+tab' : 'tab');
-        if ( !this.multiSelection ) {
+        if (!this.multiSelection) {
           this.lastSelectedItems = this._selectedItems;
-          if ( this.opened ) {
-            if ( this.$.dropdownItems.items.length === 1 ) {
+          if (this.opened) {
+            if (this.$.dropdownItems.items.length === 1) {
               this._selectedItems = this.lastSelectedItems = this.$.dropdownItems.items[0];
             }
 
-            if ( this.closeOnSelect ) {
+            if (this.closeOnSelect) {
               this.closeDropdown();
             }
           }
         } else {
-          if ( this.opened ) {
-            if ( this.$.dropdownItems.items.length === 1 && !this._selectedItems.find(item => item[this.keyColumn] === this.$.dropdownItems.items[0][this.keyColumn])) {
+          if (this.opened) {
+            if (this.$.dropdownItems.items.length === 1 && !this._selectedItems.find(item => item[this.keyColumn] === this.$.dropdownItems.items[0][this.keyColumn])) {
               this._selectedItems = [...this._selectedItems, this.$.dropdownItems.items[0]];
               this.lastSelectedItems = [...this.lastSelectedItems, this.$.dropdownItems.items[0]];
 
@@ -1128,7 +1142,7 @@ class CasperSelect extends PolymerElement {
         this.closeDropdownWithoutSaving();
         break;
       case 37: // left
-        if ( this._doesntExistYet ) {
+        if (this._doesntExistYet) {
           this._moveSelection('up');
         }
         break;
@@ -1138,7 +1152,7 @@ class CasperSelect extends PolymerElement {
           : this._searchInputClicked();
         break;
       case 39: // right
-        if ( this._doesntExistYet ) {
+        if (this._doesntExistYet) {
           this._moveSelection('down');
         }
         break;
@@ -1157,23 +1171,23 @@ class CasperSelect extends PolymerElement {
   }
 
   _moveSelection (direction) {
-    if ( !this.multiSelection ) {
+    if (!this.multiSelection) {
       let _selectedIndex = typeof this._selectedIndex === "undefined" || isNaN(this._selectedIndex) ? -1 : this._selectedIndex;
       let indexScroll = _selectedIndex;
-      if ( direction === 'up' && _selectedIndex > 0 ) {
+      if (direction === 'up' && _selectedIndex > 0) {
         _selectedIndex -= 1;
         indexScroll = _selectedIndex - 1;
-      } else if ( direction === 'down' && _selectedIndex < this.filteredItems.length - 1 ) {
+      } else if (direction === 'down' && _selectedIndex < this.filteredItems.length - 1) {
         _selectedIndex += 1;
         indexScroll = _selectedIndex - 1;
       }
 
-      this.$.dropdownItems.selectItem( this.$.dropdownItems.items[_selectedIndex] );
+      this.$.dropdownItems.selectItem(this.$.dropdownItems.items[_selectedIndex]);
       this._selectedIndex = _selectedIndex;
       this._selectedItems = this.$.dropdownItems.items[_selectedIndex];
-      this.$.dropdownItems.scrollToIndex( indexScroll );
+      this.$.dropdownItems.scrollToIndex(indexScroll);
 
-      if ( !this.opened ) {
+      if (!this.opened) {
         this._setValueInInput();
       }
 
@@ -1236,12 +1250,12 @@ class CasperSelect extends PolymerElement {
     }
   }
 
-  _searchInlineChanged ( newSearchInlineValue, oldSearchInlineValue ) {
-    if ( newSearchInlineValue && !oldSearchInlineValue ) {
+  _searchInlineChanged (newSearchInlineValue, oldSearchInlineValue) {
+    if (newSearchInlineValue && !oldSearchInlineValue) {
       this.searchCombo = false;
       this.searchInput = this.targetElement;
       this._bindSearchInputListeners();
-    } else if ( newSearchInlineValue === false && oldSearchInlineValue !== newSearchInlineValue ) {
+    } else if (newSearchInlineValue === false && oldSearchInlineValue !== newSearchInlineValue) {
       this._unbindSearchInputListeners();
     }
   }
@@ -1264,30 +1278,30 @@ class CasperSelect extends PolymerElement {
       : this._listItemInnerHTML(item[this.itemColumn]);
   }
 
-  _itemsChanged ( newItems ) {
+  _itemsChanged (newItems) {
 
-    if ( newItems == undefined || newItems == null ) {
+    if (newItems == undefined || newItems == null) {
       return this._destroy();
-    } else if ( newItems && newItems.length === 0 ) {
+    } else if (newItems && newItems.length === 0) {
       this.filteredItems = [];
     }
 
-    if ( newItems && newItems.length > 0 && newItems[0].constructor === String) {
+    if (newItems && newItems.length > 0 && newItems[0].constructor === String) {
       // The following object change will trigger the observer again, so we do an early return.
       this.items = newItems.map((element, index) => ({ id: index, name: element }));
       return;
     }
 
-    for ( let [key, item] of Object.entries(this.items) ) {
+    for (let [key, item] of Object.entries(this.items)) {
       item._csHTML = this._itemColumn(item);
       this.items[key] = item;
     }
-    if ( !this.filtering ) {
+    if (!this.filtering) {
       this.filteredItems = [];
       this.set('filteredItems', this.items);
     }
 
-    if ( this.items.length > 0 ) {
+    if (this.items.length > 0) {
       this.filterItems(undefined, true);
 
       afterNextRender(this, () => {
@@ -1298,13 +1312,13 @@ class CasperSelect extends PolymerElement {
         this._resizeItemListHeight();
         this._resizeItemListWidth();
       });
-      if ( typeof this._ignoreDisabledItems === "undefined" || this._ignoreDisabledItems === false ) {
+      if (typeof this._ignoreDisabledItems === "undefined" || this._ignoreDisabledItems === false) {
         const currentDisabledItemsKeys = this.disabledItemsKeys;
         this.disabledItems = this.disabledItemsKeys = [];
-        this.disableItems( currentDisabledItemsKeys );
+        this.disableItems(currentDisabledItemsKeys);
       }
     } else {
-      if (typeof this._ignoreDisabledItems === "undefined" || this._ignoreDisabledItems === false ) {
+      if (typeof this._ignoreDisabledItems === "undefined" || this._ignoreDisabledItems === false) {
         afterNextRender(this, () => {
           this._unsetValueInInput();
         });
@@ -1320,41 +1334,41 @@ class CasperSelect extends PolymerElement {
     }
   }
 
-  enableItems ( enabledItemsKeys ) {
-    this.disableItems( this.disabledItemsKeys.filter(key => !enabledItemsKeys.includes(key)), true );
+  enableItems (enabledItemsKeys) {
+    this.disableItems(this.disabledItemsKeys.filter(key => !enabledItemsKeys.includes(key)), true);
   }
 
   disableAllItems () {
-    this.disableItems( [], false, true );
+    this.disableItems([], false, true);
   }
 
-  disableItems ( disabledItemsKeys, cleanPrevious = false, disableAll = false ) {
+  disableItems (disabledItemsKeys, cleanPrevious = false, disableAll = false) {
     let disabledItemsLength = disabledItemsKeys.length;
     let disabledItemsFound = 0;
-    if ( disabledItemsLength > 0 ) {
+    if (disabledItemsLength > 0) {
       disabledItemsKeys = disabledItemsKeys.filter(key => !this.disabledItemsKeys.includes(key));
       disabledItemsLength = disabledItemsKeys.length;
     }
-    if ( disabledItemsLength > 0 || cleanPrevious || disableAll ) {
+    if (disabledItemsLength > 0 || cleanPrevious || disableAll) {
       this.disabledItemsKeys = disabledItemsKeys;
       let items = [], disabledItems = [];
-      for ( let [key, item] of Object.entries(this.items) ) {
-        let newItem = JSON.parse(JSON.stringify( item ));
-        if ( cleanPrevious ) {
+      for (let [key, item] of Object.entries(this.items)) {
+        let newItem = JSON.parse(JSON.stringify(item));
+        if (cleanPrevious) {
           newItem.csDisabled = false;
-        } else if ( disableAll ) {
+        } else if (disableAll) {
           newItem.csDisabled = true;
         }
-        if ( disabledItemsLength > 0 && disabledItemsFound < disabledItemsLength ) {
-          for ( let disabledItemKey of disabledItemsKeys ) {
-            if ( item[this.keyColumn] == disabledItemKey ) {
+        if (disabledItemsLength > 0 && disabledItemsFound < disabledItemsLength) {
+          for (let disabledItemKey of disabledItemsKeys) {
+            if (item[this.keyColumn] == disabledItemKey) {
               newItem.csDisabled = true;
               disabledItemsFound++;
               break;
             }
           }
         }
-        if ( newItem.csDisabled ) {
+        if (newItem.csDisabled) {
           disabledItems.push({ index: key, key: item[this.keyColumn] });
         }
         items.push(newItem);
@@ -1380,38 +1394,38 @@ class CasperSelect extends PolymerElement {
     this._tempItems = undefined;
   }
 
-  _disabledItemsChanged ( newDisabledItems ) {
-    if ( newDisabledItems && newDisabledItems.length > 0 ) {
-      if ( this.multiSelection ) {
-        if ( this._selectedItems !== undefined ) {
+  _disabledItemsChanged (newDisabledItems) {
+    if (newDisabledItems && newDisabledItems.length > 0) {
+      if (this.multiSelection) {
+        if (this._selectedItems !== undefined) {
           let selectedItems = [];
-          for ( let [key, item] of Object.entries(this._selectedItems) ) {
-            if ( !this.disabledItemsKeys.includes(item[this.keyColumn]) ) {
+          for (let [key, item] of Object.entries(this._selectedItems)) {
+            if (!this.disabledItemsKeys.includes(item[this.keyColumn])) {
               selectedItems.push(item);
             }
           }
           this._selectedItems = selectedItems;
         }
-        if ( this.lastSelectedItems !== undefined ) {
+        if (this.lastSelectedItems !== undefined) {
           let lastSelectedItems = [];
-          for ( let [key, item] of Object.entries(this.lastSelectedItems) ) {
-            if ( !this.disabledItemsKeys.includes(item[this.keyColumn]) ) {
+          for (let [key, item] of Object.entries(this.lastSelectedItems)) {
+            if (!this.disabledItemsKeys.includes(item[this.keyColumn])) {
               lastSelectedItems.push(item);
             }
           }
           this.lastSelectedItems = lastSelectedItems;
         }
       } else {
-        if ( this._selectedItems !== undefined ) {
-          if ( this.disabledItemsKeys.includes(this._selectedItems[this.keyColumn]) ) {
+        if (this._selectedItems !== undefined) {
+          if (this.disabledItemsKeys.includes(this._selectedItems[this.keyColumn])) {
             this._selectedItems = undefined;
-            if ( !this.opened ) {
+            if (!this.opened) {
               this._clearValueInput();
             }
           }
         }
-        if ( this.lastSelectedItems !== undefined ) {
-          if ( this.disabledItemsKeys.includes(this.lastSelectedItems[this.keyColumn]) ) {
+        if (this.lastSelectedItems !== undefined) {
+          if (this.disabledItemsKeys.includes(this.lastSelectedItems[this.keyColumn])) {
             this.lastSelectedItems = undefined;
           }
         }
@@ -1435,8 +1449,8 @@ class CasperSelect extends PolymerElement {
     this._setValue();
   }
 
-  _multiSelectionChanged ( newMultiSelectionValue, oldMultiSelectionValue ) {
-    if ( newMultiSelectionValue ) {
+  _multiSelectionChanged (newMultiSelectionValue, oldMultiSelectionValue) {
+    if (newMultiSelectionValue) {
       this.$.dropdownItems.setAttribute('multi-selection', '');
       this._setMultiSelectionTarget();
     } else {
@@ -1452,11 +1466,11 @@ class CasperSelect extends PolymerElement {
   }
 
   _setMultiSelectionTarget () {
-    if ( this.multiSelection ) {
-      if ( !this.multiSelectionTagsElementParent ) {
+    if (this.multiSelection) {
+      if (!this.multiSelectionTagsElementParent) {
         this.multiSelectionTags = true;
       }
-      if ( this.multiSelectionTags ) {
+      if (this.multiSelectionTags) {
         this._setPositionTarget(this.shadowRoot.querySelector('#dynamicListWithInput'));
       } else {
         this._setPositionTarget(this.shadowRoot.querySelector('#searchSelf'));
@@ -1466,8 +1480,8 @@ class CasperSelect extends PolymerElement {
     }
   }
 
-  _selectionEnabledChanged ( newSelectionEnabledValue ) {
-    if ( newSelectionEnabledValue )  {
+  _selectionEnabledChanged (newSelectionEnabledValue) {
+    if (newSelectionEnabledValue) {
       this.$.dropdownItems.setAttribute('selection-enabled', '');
     } else {
       this.$.dropdownItems.removeAttribute('selection-enabled');
@@ -1475,21 +1489,21 @@ class CasperSelect extends PolymerElement {
     }
   }
 
-  _multiSelectionTagsDefined ( multiSelectionTags ) {
+  _multiSelectionTagsDefined (multiSelectionTags) {
     this.noLabelFloat = multiSelectionTags || this.noLabelFloat;
     return multiSelectionTags ? 'multiSelectionWithTags' : '';
   }
 
-  _computedDisabledSelect ( disabled ) {
+  _computedDisabledSelect (disabled) {
     return disabled ? 'listDisabled' : '';
   }
 
-  _computedItemDisabledClass ( disabled ) {
+  _computedItemDisabledClass (disabled) {
     return disabled ? 'dropdown-item-disabled' : '';
   }
 
-  _computedItemSelectedClass ( selected ) {
-    if ( this.opened ) {
+  _computedItemSelectedClass (selected) {
+    if (this.opened) {
       this._debounceFocus();
     }
 
@@ -1497,7 +1511,7 @@ class CasperSelect extends PolymerElement {
   }
 
   _debounceRender (defaultTimeout = 30) {
-    if ( typeof this._debounceRenderTimeout !== "undefined" ) {
+    if (typeof this._debounceRenderTimeout !== "undefined") {
       clearTimeout(this._debounceRenderTimeout);
     }
     this._debounceRenderTimeout = setTimeout(() => {
@@ -1506,10 +1520,10 @@ class CasperSelect extends PolymerElement {
   }
 
   _debounceFocus (defaultTimeout = 15) {
-    if ( !this.searchInput ) {
+    if (!this.searchInput) {
       return;
     }
-    if ( typeof this._debounceFocusTimeout !== "undefined" ) {
+    if (typeof this._debounceFocusTimeout !== "undefined") {
       clearTimeout(this._debounceFocusTimeout);
     }
     this._debounceFocusTimeout = setTimeout(() => {
@@ -1528,20 +1542,20 @@ class CasperSelect extends PolymerElement {
   }
 
   closeDropdownWithoutSaving () {
-    if ( !this.multiSelection ) {
+    if (!this.multiSelection) {
       this._selectedItems = this.lastSelectedItems;
       this.ironListSelectedItems = [];
       this.ironListSelectedItems = this._selectedItems;
-      if ( this._selectedItems === undefined ) {
+      if (this._selectedItems === undefined) {
         this._clearValueInput();
       } else {
         this._setValueInInput();
       }
     }
-    if ( this.opened ) {
+    if (this.opened) {
       this.closeDropdown();
     } else {
-      if ( this.searchInput ) {
+      if (this.searchInput) {
         this.searchInput.blur();
       }
     }
@@ -1549,15 +1563,15 @@ class CasperSelect extends PolymerElement {
 
   attachTo (element, options) {
 
-    if ( this.resetOnOpen ) {
+    if (this.resetOnOpen) {
       this._clearSearch();
       this.ironListSelectedItems = null;
       this.filteredItems = this.items;
       this._selectedItems = [];
     }
 
-    if ( options !== undefined ) {
-      for ( let [key, value] of Object.entries(options) ) {
+    if (options !== undefined) {
+      for (let [key, value] of Object.entries(options)) {
         this.key = value;
       }
     }
@@ -1597,21 +1611,21 @@ class CasperSelect extends PolymerElement {
     } else {
       // Call the method straight away and fake a timeout.
       filterItemsCallback();
-      this._debounceFilterItemsTimeout = setTimeout(() => {}, 0);
+      this._debounceFilterItemsTimeout = setTimeout(() => { }, 0);
     }
   }
 
   filterItems (query, clearLast = false, skipFiltering = false) {
-    if ( typeof this.items === "undefined" || this.items.length === 0 || (skipFiltering === false && this.filtering === false) ) {
+    if (typeof this.items === "undefined" || this.items.length === 0 || (skipFiltering === false && this.filtering === false)) {
       return;
     }
 
-    if ( clearLast ) {
+    if (clearLast) {
       this._lastQueryNormalized = this._lastQuery = undefined;
     }
 
     query = query || (this.searchInput ? this.searchInput.value : '');
-    if ( query === this._lastQuery ) {
+    if (query === this._lastQuery) {
       return;
     }
 
@@ -1620,25 +1634,25 @@ class CasperSelect extends PolymerElement {
 
     let queryNormalized = (query.normalize('NFD').replace(/[\u0300-\u036f]/g, '')).toLowerCase().split(' ').filter((el) => el !== '');
 
-    if ( typeof this._lastQueryNormalized !== "undefined" ) {
-      if ( this._simpleArrayEqual(queryNormalized, this._lastQueryNormalized ? this._lastQueryNormalized : []) === true ) {
+    if (typeof this._lastQueryNormalized !== "undefined") {
+      if (this._simpleArrayEqual(queryNormalized, this._lastQueryNormalized ? this._lastQueryNormalized : []) === true) {
         return;
       }
     }
 
-    if ( query !== '' ) {
+    if (query !== '') {
       let highlightTemplate = this._highlightTemplate();
 
       this._lastQueryNormalized = queryNormalized;
 
-      if ( this.template ) {
+      if (this.template) {
         this._filterTemplateHTML = this._filterTemplateHTML || document.createElement('div');
       }
 
-      for ( let [key, item] of Object.entries(this.items) ) {
+      for (let [key, item] of Object.entries(this.items)) {
 
         let itemValue;
-        if ( this.template ) {
+        if (this.template) {
           this._filterTemplateHTML.innerHTML = this._itemColumn(item);
           itemValue = this._filterTemplateHTML.textContent || this._filterTemplateHTML.innerText || item[this.itemColumn];
         } else {
@@ -1649,14 +1663,14 @@ class CasperSelect extends PolymerElement {
         let itemNormalized = itemValue.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
         let modifications = [];
 
-        for ( let term of queryNormalized ) {
+        for (let term of queryNormalized) {
           let indexOf = itemNormalized.indexOf(term);
-          if ( indexOf !== -1 ) {
+          if (indexOf !== -1) {
             modifications.push([indexOf, indexOf + term.length - 1]);
           }
         }
 
-        if ((modifications.length > 0 && modifications.length === queryNormalized.length) || this.lazyLoadResource)  {
+        if ((modifications.length > 0 && modifications.length === queryNormalized.length) || this.lazyLoadResource) {
           let itemText;
 
           // If the items have a template or it resulted from a wild-card search from the ILIKE's underscore operator.
@@ -1666,18 +1680,18 @@ class CasperSelect extends PolymerElement {
             // Create highlight template tag around matches
             modifications = this._mergeOverlappedRanges(modifications);
             itemText = itemValue.substring(0, modifications[0][0]);
-            for ( let m = 0; m < (modifications.length); m++ ) {
+            for (let m = 0; m < (modifications.length); m++) {
               itemText += highlightTemplate.begin + itemValue.substring(modifications[m][0], modifications[m][1] + 1) + highlightTemplate.end;
-              if ( m === (modifications.length) - 1) {
+              if (m === (modifications.length) - 1) {
                 itemText += itemValue.substring(modifications[m][1] + 1, itemValue.length);
               } else {
-                itemText += itemValue.substring(modifications[m][1] + 1, modifications[m+1][0]);
+                itemText += itemValue.substring(modifications[m][1] + 1, modifications[m + 1][0]);
               }
             }
             itemText = this._listItemInnerHTML(itemText);
           }
 
-          let newItem = JSON.parse(JSON.stringify( item ));
+          let newItem = JSON.parse(JSON.stringify(item));
           newItem._csHTML = itemText;
           filteredItems.push(newItem);
         }
@@ -1688,7 +1702,7 @@ class CasperSelect extends PolymerElement {
       // Dont remember why I added it, so I just commented it for now
 
       //if ( filteredItems.length === 0 ) {
-        //this.searchInput.value = _lastQuery;
+      //this.searchInput.value = _lastQuery;
       //}
 
 
@@ -1713,12 +1727,12 @@ class CasperSelect extends PolymerElement {
       this._lastQueryNormalized = queryNormalized;
     }
 
-    if ( this.resizeOnFilter ) {
+    if (this.resizeOnFilter) {
       this._resizeItemListHeight();
     }
 
     try {
-        this.shadowRoot.querySelector("#suffixIcon").style.opacity = this._lastQueryNormalized.length > 0 ? 1 : 0;
+      this.shadowRoot.querySelector("#suffixIcon").style.opacity = this._lastQueryNormalized.length > 0 ? 1 : 0;
     } catch (e) {
       // Sometimes the #suffixIcon might not exist.
     }
@@ -1769,16 +1783,16 @@ class CasperSelect extends PolymerElement {
   }
 
   _selectItems () {
-    if ( this.filteredItems && this.filteredItems.length > 0 && this._selectedItems && ( !this.multiSelection || this._selectedItems.length > 0 )) {
-      for ( let [key, item] of Object.entries(this.filteredItems) ) {
-        if ( !this.multiSelection ) {
-          if ( this._selectedItems[this.keyColumn] == item[this.keyColumn] ) {
-            this.$.dropdownItems.selectItem( this.$.dropdownItems.items[key] );
+    if (this.filteredItems && this.filteredItems.length > 0 && this._selectedItems && (!this.multiSelection || this._selectedItems.length > 0)) {
+      for (let [key, item] of Object.entries(this.filteredItems)) {
+        if (!this.multiSelection) {
+          if (this._selectedItems[this.keyColumn] == item[this.keyColumn]) {
+            this.$.dropdownItems.selectItem(this.$.dropdownItems.items[key]);
           }
         } else {
-          for ( let selItem of this._selectedItems ) {
-            if ( selItem[this.keyColumn] == item[this.keyColumn] ) {
-              this.$.dropdownItems.selectItem( this.$.dropdownItems.items[key] );
+          for (let selItem of this._selectedItems) {
+            if (selItem[this.keyColumn] == item[this.keyColumn]) {
+              this.$.dropdownItems.selectItem(this.$.dropdownItems.items[key]);
             }
           }
         }
@@ -1808,11 +1822,11 @@ class CasperSelect extends PolymerElement {
   }
 
   _simpleArrayEqual (arr1, arr2) {
-    if ( arr1.length != arr2.length ) {
+    if (arr1.length != arr2.length) {
       return false;
     }
-    for ( let i = 0, l=arr1.length; i < l; i++ ) {
-      if ( arr1[i] != arr2[i] ) {
+    for (let i = 0, l = arr1.length; i < l; i++) {
+      if (arr1[i] != arr2[i]) {
         return false;
       }
     }
@@ -1821,11 +1835,11 @@ class CasperSelect extends PolymerElement {
 
   _mergeOverlappedRanges (ranges) {
     let result = [], last;
-    ranges.sort((a, b) => a[0]-b[0] || a[1]-b[1]);
+    ranges.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
     ranges.forEach(r => {
-      if ( !last || (r[0] - 1) > last[1] ) {
+      if (!last || (r[0] - 1) > last[1]) {
         result.push(last = r);
-      } else if ( (r[1] - 1) > last[1] ) {
+      } else if ((r[1] - 1) > last[1]) {
         last[1] = r[1];
       }
     });
@@ -1977,7 +1991,7 @@ class CasperSelect extends PolymerElement {
           this._lazyLoadDisabled = this.items.length === this._lazyLoadTotalResults;
 
           // Dispatch an event with the flag stating if it's the first fetch or not.
-          this.dispatchEvent(new CustomEvent('casper-select-lazy-loaded', { detail: { initialLoad: this._lazyLoadFirstFetch }}));
+          this.dispatchEvent(new CustomEvent('casper-select-lazy-loaded', { detail: { initialLoad: this._lazyLoadFirstFetch } }));
           this._lazyLoadFirstFetch = false;
         });
       });
@@ -2080,8 +2094,8 @@ class CasperSelect extends PolymerElement {
     this._loadMoreItems('scroll');
   }
 
-  _shouldDisplayPaginationAndOrClose (multiSelection, lazyLoadResource) {
-    return multiSelection || !!lazyLoadResource;
+  _shouldDisplayPaginationAndOrClose (multiSelection, lazyLoadResource, hasSuffixAssignedNodes) {
+    return multiSelection || !!lazyLoadResource || hasSuffixAssignedNodes;
   }
 
 
@@ -2163,11 +2177,11 @@ class CasperSelect extends PolymerElement {
   }
 
   restampTemplate () {
-    if ( !this.template || !this.items || !this.filteredItems ) return;
+    if (!this.template || !this.items || !this.filteredItems) return;
 
     let filteredItems = [];
 
-    for ( let [key, item] of Object.entries(this.items) ) {
+    for (let [key, item] of Object.entries(this.items)) {
       if (this.filteredItems.some(filteredItem => filteredItem[this.keyColumn] === item[this.keyColumn])) {
         item._csHTML = this._listItemInnerHTML(this.__stampItemTemplate(item));
         filteredItems.push(item);
