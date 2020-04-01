@@ -1933,17 +1933,18 @@ class CasperSelect extends PolymerElement {
         if (this._lazyLoadDisabled) return;
 
         this._lazyLoadFetching = true;
-        this._lazyLoadRequestId = app.socket.getData(this._loadMoreItemsUrl(), this.lazyLoadTimeout, (socketResponse, request) => {
+        this._lazyLoadRequestId = window.app.socket.getData(this._loadMoreItemsUrl(), this.lazyLoadTimeout, (socketResponse, request) => {
           // Ignore previous requests to prevent race conditions.
           if (this._lazyLoadRequestId !== request.invokeId) return;
 
           // Hide the spinner and reset the scroll triggers.
           this._lazyLoadFetching = false;
           this._dropdownScrollEventDisabled = false;
-
-          if (socketResponse.errors) {
-            this.dispatchEvent(new CustomEvent('casper-select-lazy-loaded-error'));
-            return;
+          if (socketResponse.errors && socketResponse.errors.constructor === Array && socketResponse.errors.length > 0 && socketResponse.errors[0].detail) {
+            return window.app.openToast({
+              backgroundColor: 'red',
+              text: socketResponse.errors[0].detail,
+            });
           }
 
           // Calculate the total number of existing pages.
