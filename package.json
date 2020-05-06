@@ -1,7 +1,10 @@
 {
   "description": "Casper Select",
-  "name": "@casper2020/casper-select",
+  "name": "@cloudware-casper/casper-select",
   "version": "2.10.1",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
   "resolutions": {
     "inherits": "2.0.3",
     "samsam": "1.1.3",
