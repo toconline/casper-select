@@ -19,8 +19,8 @@
 */
 
 import './casper-select-dropdown.js';
-import '@casper2020/casper-icons/casper-icon.js';
-import '@casper2020/casper-button/casper-button.js';
+import '@cloudware-casper/casper-icons/casper-icon.js';
+import '@cloudware-casper/casper-button/casper-button.js';
 import '@polymer/iron-list/iron-list.js';
 import '@polymer/iron-input/iron-input.js';
 import '@polymer/paper-input/paper-input.js';

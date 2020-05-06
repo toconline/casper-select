@@ -20,7 +20,7 @@
 
 import { mixinBehaviors } from '@polymer/polymer/lib/legacy/class.js';
 import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
-import { CasperOverlayBehavior } from '@casper2020/casper-overlay-behavior/casper-overlay-behavior.js';
+import { CasperOverlayBehavior } from '@cloudware-casper/casper-overlay-behavior/casper-overlay-behavior.js';
 
 class CasperSelectDropdown extends mixinBehaviors(CasperOverlayBehavior, PolymerElement) {
   static get template () {
