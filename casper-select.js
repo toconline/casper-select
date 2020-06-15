@@ -1917,7 +1917,7 @@ class CasperSelect extends PolymerElement {
 
       const triggeredFromSearch = eventSource === 'search';
 
-      afterNextRender(this, () => {
+      afterNextRender(this, async () => {
         // Used to not trigger an additional query for a repeated search for when the user opens the select.
         if (triggeredFromSearch && this.searchInput && this.searchInput.value === this._lastQuery) return;
 
@@ -1933,68 +1933,66 @@ class CasperSelect extends PolymerElement {
         if (this._lazyLoadDisabled) return;
 
         this._lazyLoadFetching = true;
-        this._lazyLoadRequestId = window.app.socket.getData(this._loadMoreItemsUrl(), this.lazyLoadTimeout, (socketResponse, request) => {
-          // Ignore previous requests to prevent race conditions.
-          if (this._lazyLoadRequestId !== request.invokeId) return;
 
-          // Hide the spinner and reset the scroll triggers.
-          this._lazyLoadFetching = false;
-          this._dropdownScrollEventDisabled = false;
-          if (socketResponse.errors && socketResponse.errors.constructor === Array && socketResponse.errors.length > 0 && socketResponse.errors[0].detail) {
-            return window.app.openToast({
-              backgroundColor: 'red',
-              text: socketResponse.errors[0].detail,
-            });
-          }
+        const socketResponse = await window.app.socket.jget(this._loadMoreItemsUrl(), this.lazyLoadTimeout);
 
-          // Calculate the total number of existing pages.
-          this._lazyLoadTotalResults = parseInt(socketResponse.meta.total);
+        // Hide the spinner and reset the scroll triggers.
+        this._lazyLoadFetching = false;
+        this._dropdownScrollEventDisabled = false;
+        if (socketResponse.errors && socketResponse.errors.constructor === Array && socketResponse.errors.length > 0 && socketResponse.errors[0].detail) {
+          return window.app.openToast({
+            backgroundColor: 'red',
+            text: socketResponse.errors[0].detail,
+          });
+        }
 
-          // Fetch the relationships data which falls under the 'included' key.
-          const includedData = socketResponse.included ? socketResponse.included : null;
-          const resultsIncludedData = {};
-          if (includedData && includedData.length > 0) {
-            includedData.forEach(included => {
-              if (!resultsIncludedData[included.type]) {
-                resultsIncludedData[included.type] = {};
-              }
-              resultsIncludedData[included.type][included.id] = included;
-            });
-          }
+        // Calculate the total number of existing pages.
+        this._lazyLoadTotalResults = parseInt(socketResponse.meta.total);
 
-          // Either replace the all items list if it was triggered by a search or append if it's a scroll event.
-          const currentItems = this.items || [];
-          const formattedResultItems = socketResponse.data.map(item => this.lazyLoadCallback(item, resultsIncludedData));
-          const resultItems = triggeredFromSearch ? formattedResultItems : [...currentItems, ...formattedResultItems];
+        // Fetch the relationships data which falls under the 'included' key.
+        const includedData = socketResponse.included ? socketResponse.included : null;
+        const resultsIncludedData = {};
+        if (includedData && includedData.length > 0) {
+          includedData.forEach(included => {
+            if (!resultsIncludedData[included.type]) {
+              resultsIncludedData[included.type] = {};
+            }
+            resultsIncludedData[included.type][included.id] = included;
+          });
+        }
 
-          // This is used so that we can push the elements into the list instead of directly replacing them
-          // which would cause iron-list to scroll to its top.
-          if (!triggeredFromSearch && this._lazyLoadCurrentPage !== 1) {
-            this._appendNewFilteredItems = formattedResultItems;
-          }
+        // Either replace the all items list if it was triggered by a search or append if it's a scroll event.
+        const currentItems = this.items || [];
+        const formattedResultItems = socketResponse.data.map(item => this.lazyLoadCallback(item, resultsIncludedData));
+        const resultItems = triggeredFromSearch ? formattedResultItems : [...currentItems, ...formattedResultItems];
 
-          // Save the last query in case there are no results.
-          if (triggeredFromSearch && socketResponse.data.length === 0) this._lastQuery = this.searchInput.value;
+        // This is used so that we can push the elements into the list instead of directly replacing them
+        // which would cause iron-list to scroll to its top.
+        if (!triggeredFromSearch && this._lazyLoadCurrentPage !== 1) {
+          this._appendNewFilteredItems = formattedResultItems;
+        }
 
-          // Select the first item that resulted from a search.
-          if (triggeredFromSearch && socketResponse.data.length > 0 && !this.multiSelection) {
-            this._triggerFirstItemSelection = true;
-          }
+        // Save the last query in case there are no results.
+        if (triggeredFromSearch && socketResponse.data.length === 0) this._lastQuery = this.searchInput.value;
 
-          this.items = resultItems;
+        // Select the first item that resulted from a search.
+        if (triggeredFromSearch && socketResponse.data.length > 0 && !this.multiSelection) {
+          this._triggerFirstItemSelection = true;
+        }
 
-          // Open the dropdown if this was triggered from a search event.
-          if (triggeredFromSearch && !this.opened) {
-            this.openDropdown();
-          }
+        this.items = resultItems;
 
-          // Disable further socket queries if there are no more results.
-          this._lazyLoadDisabled = this.items.length === this._lazyLoadTotalResults;
+        // Open the dropdown if this was triggered from a search event.
+        if (triggeredFromSearch && !this.opened) {
+          this.openDropdown();
+        }
 
-          // Dispatch an event with the flag stating if it's the first fetch or not.
-          this.dispatchEvent(new CustomEvent('casper-select-lazy-loaded', { detail: { initialLoad: this._lazyLoadFirstFetch } }));
-          this._lazyLoadFirstFetch = false;
-        });
+        // Disable further socket queries if there are no more results.
+        this._lazyLoadDisabled = this.items.length === this._lazyLoadTotalResults;
+
+        // Dispatch an event with the flag stating if it's the first fetch or not.
+        this.dispatchEvent(new CustomEvent('casper-select-lazy-loaded', { detail: { initialLoad: this._lazyLoadFirstFetch } }));
+        this._lazyLoadFirstFetch = false;
       });
     });
   }
