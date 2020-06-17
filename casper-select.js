@@ -1963,8 +1963,13 @@ class CasperSelect extends PolymerElement {
 
         // Either replace the all items list if it was triggered by a search or append if it's a scroll event.
         const currentItems = this.items || [];
-        const formattedResultItems = socketResponse.data.map(item => this.lazyLoadCallback(item, resultsIncludedData));
-        const resultItems = triggeredFromSearch ? formattedResultItems : [...currentItems, ...formattedResultItems];
+        const formattedResultItems = !this.lazyLoadCallback
+          ? socketResponse.data
+          : socketResponse.data.map(item => this.lazyLoadCallback(item, resultsIncludedData));
+
+        const resultItems = triggeredFromSearch
+          ? formattedResultItems
+          : [...currentItems, ...formattedResultItems];
 
         // This is used so that we can push the elements into the list instead of directly replacing them
         // which would cause iron-list to scroll to its top.
