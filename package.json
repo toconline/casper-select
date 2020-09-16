@@ -14,7 +14,7 @@
   "main": "casper-select.js",
   "dependencies": {
     "@cloudware-casper/casper-button": "^1.x",
-    "@cloudware-casper/casper-icons": "^1.x",
+    "@cloudware-casper/casper-icons": "^2.x",
     "@cloudware-casper/casper-overlay-behavior": "^1.x",
     "@polymer/iron-fit-behavior": "^3.x",
     "@polymer/iron-input": "^3.x",
