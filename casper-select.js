@@ -170,8 +170,11 @@ class CasperSelect extends PolymerElement {
 
         <!--Multi-selection variant-->
         <template is="dom-if" if="[[multiSelection]]">
-          <paper-input-container disabled$="[[disabled]]" class="casper-multi-selection" always-float-label$="[[_shouldLabelFloat]]">
-            <label slot="label">[[label]]</label>
+          <paper-input-container disabled$="[[disabled]]" class="casper-multi-selection" no-label-float="[[noLabelFloat]]" always-float-label$="[[_shouldLabelFloat]]">
+            <template is="dom-if" if="[[!noLabelFloat]]">
+              <label slot="label">[[label]]</label>
+            </template>
+
             <iron-input slot="input">
               <div class="list-items" id="dynamicListWithInput">
                 <div class="list-item-input">
@@ -1490,7 +1493,7 @@ class CasperSelect extends PolymerElement {
   }
 
   _multiSelectionTagsDefined (multiSelectionTags) {
-    this.noLabelFloat = multiSelectionTags || this.noLabelFloat;
+    this.noLabelFloat = this.noLabelFloat;
     return multiSelectionTags ? 'multiSelectionWithTags' : '';
   }
 
