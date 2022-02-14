@@ -745,6 +745,14 @@ class CasperSelect extends PolymerElement {
       lazyLoadFetchAllResults: {
         type: Boolean,
         value: false
+      },
+      /**
+       * Boolean that when set to true, dispatch and event that cannot leave the list empty
+       * @type {Number}
+       */
+      preventLeaveEmpty: {
+        type: Boolean,
+        value: false
       }
     };
   }
@@ -962,6 +970,12 @@ class CasperSelect extends PolymerElement {
   }
 
   _removeOptionFromList (event) {
+
+    if (this._selectedItems.length == 1 && this.preventLeaveEmpty) {
+      this._dispatchPreventLeaveEmpty(event)
+      return
+    }
+
     const clickedKey = event.target.parentNode.dataset.key;
 
     for (let [key, item] of Object.entries(this._selectedItems)) {
@@ -1008,6 +1022,12 @@ class CasperSelect extends PolymerElement {
 
     if (this.multiSelection) {
       if (classList.contains('dropdown-item-selected')) {
+
+        if (this._selectedItems.length == 1 && this.preventLeaveEmpty) {
+          this._dispatchPreventLeaveEmpty(event)
+          return
+        }
+
         for (let [key, item] of Object.entries(this._selectedItems)) {
           if (item[this.keyColumn] == event.model.item[this.keyColumn]) {
             this._selectedItems.splice(key, 1);
@@ -1042,6 +1062,14 @@ class CasperSelect extends PolymerElement {
         }
       }
     }
+  }
+
+  _dispatchPreventLeaveEmpty (event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    this.dispatchEvent(new CustomEvent('casper-select-prevent-leave-empty', { detail: { empty: false } }));
+    console.log("casper-select-prevent-leave-empty")
   }
 
   _emptyList (items) {
