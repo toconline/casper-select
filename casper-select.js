@@ -1625,6 +1625,8 @@ class CasperSelect extends PolymerElement {
   _debounceFilterItems (event) {
     event.stopImmediatePropagation();
 
+    this.dispatchEvent(new CustomEvent('casper-select-typing', { detail: { typing: true, value: event.detail.value} }));
+
     const filterItemsTimer = this.lazyLoadResource ? 250 : 50;
     const filterItemsCallback = () => {
       !!this.lazyLoadResource && this.filtering
@@ -1884,6 +1886,8 @@ class CasperSelect extends PolymerElement {
    */
   _clearSelectIconClicked (event) {
     if (this.disabled || this.readonly) return;
+
+    this.dispatchEvent(new CustomEvent('casper-select-clear-selection', { detail: { clear: true} }));
 
     event.stopImmediatePropagation();
 
