@@ -31,6 +31,7 @@ import { Debouncer } from '@polymer/polymer/lib/utils/debounce.js';
 import { templatize } from '@polymer/polymer/lib/utils/templatize.js';
 import { PolymerElement, html } from '@polymer/polymer/polymer-element.js';
 import { afterNextRender } from '@polymer/polymer/lib/utils/render-status.js';
+import DOMPurify from 'dompurify';
 
 class CasperSelect extends PolymerElement {
   static get template () {
@@ -1919,7 +1920,13 @@ class CasperSelect extends PolymerElement {
 
     const textContainer = document.createElement('div');
     textContainer.classList.add('dropdown-item-text');
-    textContainer.innerHTML = itemContents;
+    textContainer.innerHTML = DOMPurify.sanitize(itemContents, {
+      CUSTOM_ELEMENT_HANDLING: {
+          tagNameCheck: /^casper-/, // only casper elements are allowed
+          attributeNameCheck: /icon/, // only icon attribute is allowed
+          allowCustomizedBuiltInElements: false, // no customized built-ins allowed
+      },
+    });
 
     const iconContainer = document.createElement('div');
     iconContainer.classList.add('dropdown-item-icon');

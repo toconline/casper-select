@@ -6,6 +6,9 @@
     "registry": "https://npm.pkg.github.com/"
   },
   "main": "casper-select.js",
+  "resolutions": {
+    "lit-element": "^3.x"
+  },
   "dependencies": {
     "@cloudware-casper/casper-button": "^2.x",
     "@cloudware-casper/casper-icons": "^3.x",
@@ -16,6 +19,7 @@
     "@polymer/iron-overlay-behavior": "^3.x",
     "@polymer/paper-input": "^3.x",
     "@polymer/paper-spinner": "^3.x",
-    "@polymer/polymer": "^3.x"
+    "@polymer/polymer": "^3.x",
+    "dompurify": "^2.x"
   }
 }
