@@ -783,6 +783,13 @@ class CasperSelect extends PolymerElement {
       intersectionObserver.observe(this);
     }
 
+    // Detect if we are on mobile
+    if( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
+      this._isMobile = true;
+     } else {
+      this._isMobile = false;
+     }
+
     // Pass the slotted elements to the casper-select-dropdown element.
     afterNextRender(this, () => {
       const prefixSlotNodes = this.shadowRoot.querySelector('slot[name="dropdown-prefix"]').assignedNodes();
@@ -1001,6 +1008,11 @@ class CasperSelect extends PolymerElement {
     // Do nothing if the input is already open.
     if (this.opened) return;
 
+    if (this._isMobile) {
+      // We need this to open mobile keyboard
+      this._debounceFocus(0);
+    }
+
     // Open the dropdown in case of lazy loading because the items actively change according to the search input.
     if (this.lazyLoadResource && !this.disabled && !this.readonly) {
       this.openDropdown();
@@ -1012,6 +1024,8 @@ class CasperSelect extends PolymerElement {
   }
 
   _itemClicked (event) {
+
+    if (this._isMobile) return this._mobileItemClicked(event);
 
     let classList = (event.composedPath()).find(element => element.classList.contains('dropdown-item')).classList;
 
@@ -1045,6 +1059,59 @@ class CasperSelect extends PolymerElement {
       }
     } else {
       if (classList.contains('dropdown-item-selected')) {
+        // Force the user to have at least one item selected.
+        if (this.disableClear) {
+          afterNextRender(this, () => {
+            this.$.dropdownItems.selectIndex(event.model.index);
+          });
+          return;
+        }
+
+        this._selectedItems = [];
+        this._selectedIndex = -1;
+      } else {
+        this._selectedIndex = event.model.index;
+        this._selectedItems = event.model.item;
+        if (this.closeOnSelect) {
+          this.closeDropdown();
+        }
+      }
+    }
+  }
+
+  _mobileItemClicked (event) {
+    let classList = (event.composedPath()).find(element => element.classList.contains('dropdown-item')).classList;
+
+    if (!this.selectionEnabled || classList.contains('dropdown-item-disabled')) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (this.multiSelection) {
+      if (!classList.contains('dropdown-item-selected')) {
+
+        if (this._selectedItems.length == 1 && this.preventLeaveEmpty) {
+          this._dispatchPreventLeaveEmpty(event)
+          return
+        }
+
+        for (let [key, item] of Object.entries(this._selectedItems)) {
+          if (item[this.keyColumn] == event.model.item[this.keyColumn]) {
+            this._selectedItems.splice(key, 1);
+            this._selectedItems = JSON.parse(JSON.stringify(this._selectedItems));
+            return;
+          }
+        }
+      } else {
+        if (typeof this._selectedItems === "undefined") {
+          this._selectedItems = [];
+        }
+        this._selectedItems.push(event.model.item);
+        this._selectedItems = JSON.parse(JSON.stringify(this._selectedItems));
+      }
+    } else {
+      if (!classList.contains('dropdown-item-selected')) {
         // Force the user to have at least one item selected.
         if (this.disableClear) {
           afterNextRender(this, () => {
@@ -1535,7 +1602,7 @@ class CasperSelect extends PolymerElement {
   }
 
   _computedItemSelectedClass (selected) {
-    if (this.opened) {
+    if (this.opened && !this._isMobile) {
       this._debounceFocus();
     }
 
