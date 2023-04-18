@@ -866,6 +866,9 @@ class CasperSelect extends PolymerElement {
       if (!this.multiSelection && (this.searchDynamic || this.searchInline)) {
         this._unsetValueInInput();
       }
+
+      // Necessary for CasperEditDialog, to fix problem related to the stacking context of the top-layer
+      this.dispatchEvent(new CustomEvent('casper-select-opened', { bubbles: true, composed: true, detail: { dropdown: this.$.dropdown } }));
     }
   }
 
