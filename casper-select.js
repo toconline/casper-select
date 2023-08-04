@@ -1214,8 +1214,8 @@ class CasperSelect extends PolymerElement {
         if (this.noConfirmOnTabKey && key == 9) {
           event.preventDefault();
 
-          // Necessary for CasperEditDialog and other components, so that the next field is focused when the user presses tab
-          this.dispatchEvent(new CustomEvent('casper-select-tab-was-pressed', { bubbles: true, composed: true, cancelable: true, detail: { element: this } }));
+          // Necessary for CasperEditDialog and other components, so that the previous / next field is focused when the user presses shift+tab / tab
+          this.dispatchEvent(new CustomEvent('casper-select-tab-was-pressed', { bubbles: true, composed: true, cancelable: true, detail: { element: this, pressed_shift_key: event.shiftKey } }));
           return;
         }
         this._closingKey = key == 13 ? 'enter' : (event.shiftKey === true ? 'shift+tab' : 'tab');
@@ -1243,8 +1243,8 @@ class CasperSelect extends PolymerElement {
         }
 
         if (key == 9) {
-          // Necessary for CasperEditDialog and other components, so that the next field is focused when the user presses tab
-          this.dispatchEvent(new CustomEvent('casper-select-tab-was-pressed', { bubbles: true, composed: true, cancelable: true, detail: { element: this } }));
+          // Necessary for CasperEditDialog and other components, so that the previous / next field is focused when the user presses shift+tab / tab
+          this.dispatchEvent(new CustomEvent('casper-select-tab-was-pressed', { bubbles: true, composed: true, cancelable: true, detail: { element: this, pressed_shift_key: event.shiftKey } }));
         }
 
         break;
