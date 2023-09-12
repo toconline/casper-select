@@ -2067,9 +2067,6 @@ class CasperSelect extends PolymerElement {
           });
         }
 
-        // Calculate the total number of existing pages.
-        this._lazyLoadTotalResults = parseInt(socketResponse.meta.total);
-
         // Fetch the relationships data which falls under the 'included' key.
         const includedData = socketResponse.included ? socketResponse.included : null;
         const resultsIncludedData = {};
@@ -2111,6 +2108,21 @@ class CasperSelect extends PolymerElement {
         // Open the dropdown if this was triggered from a search event.
         if (triggeredFromSearch && !this.opened) {
           this.openDropdown();
+        }
+
+        // Calculate the total number of existing pages.
+        if (socketResponse.meta && socketResponse.meta.total) {
+          this._lazyLoadTotalResults = parseInt(socketResponse.meta.total);
+        } else {
+          if (socketResponse.data) {
+            this._lazyLoadTotalResults = parseInt(this.items.length);
+            if (!this.lazyLoadFetchAllResults) {
+              if (this.lazyLoadPageSize && socketResponse.data.length >= this.lazyLoadPageSize) this._lazyLoadTotalResults += this.lazyLoadPageSize;
+              if (!this.lazyLoadPageSize && socketResponse.data.length > 0) this._lazyLoadTotalResults += 1;
+            }
+          } else {
+            this._lazyLoadTotalResults = this.items.length;
+          }
         }
 
         // Disable further socket queries if there are no more results.
