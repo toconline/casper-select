@@ -1,6 +1,6 @@
 {
   "description": "Casper Select",
-  "name": "@cloudware-casper/casper-select",
+  "name": "@toconline/casper-select",
   "version": "3.1.6",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
@@ -10,9 +10,9 @@
     "lit-element": "^3.x"
   },
   "dependencies": {
-    "@cloudware-casper/casper-button": "^2.x",
-    "@cloudware-casper/casper-icons": "^3.x",
-    "@cloudware-casper/casper-overlay-behavior": "^1.x",
+    "@toconline/casper-button": "^2.x",
+    "@toconline/casper-icons": "^3.x",
+    "@toconline/casper-overlay-behavior": "^1.x",
     "@polymer/iron-fit-behavior": "^3.x",
     "@polymer/iron-input": "^3.x",
     "@polymer/iron-list": "^3.x",
